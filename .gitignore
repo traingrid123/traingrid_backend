@@ -5,8 +5,6 @@
 # Below is a copy of https://github.com/github/gitignore/blob/HEAD/Node.gitignore
 
 # Logs
-logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
