@@ -8,6 +8,7 @@ import { appRateLimit } from "./config/rateLimit";
 import { registerSwagger } from "./config/swagger";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 import { loggerMiddleware } from "./middleware/logger.middleware";
+import { authRouter } from "./modules/auth/auth.router";
 import routes from "./routes";
 
 export function createApp() {
@@ -23,6 +24,7 @@ export function createApp() {
   app.use(loggerMiddleware);
 
   registerSwagger(app);
+  app.use("/auth", authRouter);
   app.use(routes);
   app.use(notFoundHandler);
   app.use(errorHandler);

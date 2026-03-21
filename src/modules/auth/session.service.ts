@@ -1,3 +1,10 @@
+import { tokenService, type AuthRole } from "./token.service";
+
 export const sessionService = {
-  status: "session service placeholder"
+  createSession(params: { userId: string; role: AuthRole }) {
+    return tokenService.issueTokens({
+      sub: params.userId,
+      role: params.role
+    });
+  }
 };
