@@ -1,14 +1,24 @@
 import { createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 
 import { env } from "./config/env";
 import { createApp } from "./app";
 import { logger } from "./lib/logger";
 import { prisma } from "./lib/prisma";
+import { registerChatSocket } from "./modules/chat/chat.socket";
 // import { getRedisClient } from "./lib/redis";
 
 async function bootstrap(): Promise<void> {
   const app = createApp();
   const server = createServer(app);
+  const io = new SocketIOServer(server, {
+    cors: {
+      origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN,
+      credentials: true
+    }
+  });
+
+  registerChatSocket(io);
 
   try {
     await prisma.$connect();
