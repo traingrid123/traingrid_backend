@@ -135,6 +135,7 @@ model Coach {
   id                 String                    @id @default(cuid())
   email              String?                   @unique
   phone              String?                   @unique
+  passwordHash       String                    @map("password_hash")
   fullName           String                    @map("full_name")
   gender             Gender?
   profilePhoto       String?                   @map("profile_photo")
@@ -177,6 +178,7 @@ model Client {
   id                 String                    @id @default(cuid())
   email              String?                   @unique
   phone              String?                   @unique
+  passwordHash       String                    @map("password_hash")
   fullName           String                    @map("full_name")
   gender             Gender?
   profilePhoto       String?                   @map("profile_photo")

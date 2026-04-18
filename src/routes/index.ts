@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { chatRouter } from "../modules/chat/chat.router";
+
 const router = Router();
 
 router.get("/health", (_req, res) => {
@@ -8,5 +10,7 @@ router.get("/health", (_req, res) => {
     message: "TrainGrid backend is running"
   });
 });
+
+router.use("/chat", chatRouter);
 
 export default router;
