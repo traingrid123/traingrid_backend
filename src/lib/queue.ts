@@ -4,6 +4,8 @@ import { getRedisClient } from "./redis";
 
 export function createQueue(name: string): Queue {
   return new Queue(name, {
-    connection: getRedisClient()
+    // BullMQ and the app currently resolve slightly different ioredis type copies.
+    // The runtime client is valid, so we narrow the mismatch at the boundary.
+    connection: getRedisClient() as never
   });
 }
