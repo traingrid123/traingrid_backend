@@ -19,6 +19,10 @@ const spec = swaggerJsdoc({
       {
         name: "Chat",
         description: "Direct room and message management"
+      },
+      {
+        name: "Workouts",
+        description: "Workout plan authoring, assignment, execution, and analytics"
       }
     ],
     components: {
@@ -423,6 +427,198 @@ const spec = swaggerJsdoc({
               },
               required: ["items"]
             }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutLevel: {
+          type: "string",
+          enum: ["BEGINNER", "INTERMEDIATE", "ADVANCED"]
+        },
+        WorkoutWeekDay: {
+          type: "string",
+          enum: [
+            "MONDAY",
+            "TUESDAY",
+            "WEDNESDAY",
+            "THURSDAY",
+            "FRIDAY",
+            "SATURDAY",
+            "SUNDAY"
+          ]
+        },
+        WorkoutDayExerciseInput: {
+          type: "object",
+          properties: {
+            exerciseId: { type: "string" },
+            sets: { type: "integer", minimum: 1 },
+            reps: { type: "string" },
+            restSeconds: { type: "integer", minimum: 0 },
+            durationSecs: { type: "integer", minimum: 0 },
+            tempo: { type: "string" },
+            notes: { type: "string" },
+            orderIndex: { type: "integer", minimum: 1 }
+          },
+          required: ["exerciseId", "orderIndex"]
+        },
+        WorkoutDayInput: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            weekNumber: { type: "integer", minimum: 1 },
+            dayOfWeek: { $ref: "#/components/schemas/WorkoutWeekDay" },
+            orderIndex: { type: "integer", minimum: 1 },
+            isRestDay: { type: "boolean" },
+            notes: { type: "string" },
+            exercises: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkoutDayExerciseInput" }
+            }
+          },
+          required: ["weekNumber", "orderIndex", "isRestDay", "exercises"]
+        },
+        WorkoutPlanCreateRequest: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            level: { $ref: "#/components/schemas/WorkoutLevel" },
+            durationWeeks: { type: "integer", minimum: 1 },
+            isTemplate: { type: "boolean" },
+            isDraft: { type: "boolean" },
+            tags: { type: "array", items: { type: "string" } },
+            days: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkoutDayInput" }
+            }
+          },
+          required: ["title", "level", "days"]
+        },
+        WorkoutPlanUpdateRequest: {
+          type: "object",
+          properties: {
+            expectedVersion: { type: "integer", minimum: 1 },
+            title: { type: "string" },
+            description: { type: "string", nullable: true },
+            level: { $ref: "#/components/schemas/WorkoutLevel" },
+            durationWeeks: { type: "integer", nullable: true },
+            isTemplate: { type: "boolean" },
+            isDraft: { type: "boolean" },
+            tags: { type: "array", items: { type: "string" } },
+            days: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkoutDayInput" }
+            }
+          },
+          required: ["expectedVersion"]
+        },
+        WorkoutPlanDuplicateRequest: {
+          type: "object",
+          properties: {
+            mode: {
+              type: "string",
+              enum: ["WEEKLY", "MONTHLY"],
+              default: "WEEKLY"
+            },
+            title: { type: "string" },
+            isDraft: { type: "boolean" }
+          }
+        },
+        WorkoutPlanAssignmentRequest: {
+          type: "object",
+          properties: {
+            clientId: { type: "string" },
+            workoutPlanId: { type: "string" },
+            startDate: { type: "string", format: "date-time" },
+            endDate: { type: "string", format: "date-time" }
+          },
+          required: ["clientId", "workoutPlanId"]
+        },
+        WorkoutExerciseLogInput: {
+          type: "object",
+          properties: {
+            exerciseId: { type: "string" },
+            exerciseName: { type: "string" },
+            sets: { type: "object", nullable: true },
+            notes: { type: "string" }
+          },
+          required: ["exerciseName"]
+        },
+        WorkoutCompleteRequest: {
+          type: "object",
+          properties: {
+            loggedAt: { type: "string", format: "date-time" },
+            sourceEventId: { type: "string" },
+            durationMinutes: { type: "integer", minimum: 1 },
+            perceivedEffort: { type: "integer", minimum: 1, maximum: 10 },
+            notes: { type: "string" },
+            exerciseLogs: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkoutExerciseLogInput" }
+            }
+          }
+        },
+        WorkoutPlanResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: { type: "object" }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutPlansResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "object",
+              properties: {
+                items: { type: "array", items: { type: "object" } },
+                page: { type: "integer" },
+                limit: { type: "integer" },
+                total: { type: "integer" }
+              },
+              required: ["items", "page", "limit", "total"]
+            }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutAssignmentResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: { type: "object" }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutTodayResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: { type: "object" }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutDetailResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: { type: "object" }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutCompleteResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: { type: "object" }
+          },
+          required: ["success", "data"]
+        },
+        WorkoutAnalyticsResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: { type: "object" }
           },
           required: ["success", "data"]
         }
