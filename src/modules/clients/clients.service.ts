@@ -402,7 +402,7 @@ export const clientsService = {
         })) ?? []
       },
       interactionFeatures: {
-        requestPlanUpdatePath: `/notifications`,
+        requestPlanUpdatePath: `/clients/${clientId}/plan-update-request`,
         pushNotificationHistory: client.notifications.map((item) => ({
           id: item.id,
           title: item.title,

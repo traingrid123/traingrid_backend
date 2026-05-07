@@ -2,6 +2,11 @@ import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
 import { tokenService } from "../auth/token.service";
+import { notificationsSchema } from "../notifications/notifications.schema";
+import {
+  NotificationError,
+  notificationsService
+} from "../notifications/notifications.service";
 import { clientsSchema } from "./clients.schema";
 import { ClientError, clientsService } from "./clients.service";
 
@@ -52,6 +57,14 @@ function handleClientError(error: unknown, res: Response, next: NextFunction) {
   }
 
   if (error instanceof ClientError) {
+    res.status(error.statusCode).json({
+      success: false,
+      message: error.message
+    });
+    return;
+  }
+
+  if (error instanceof NotificationError) {
     res.status(error.statusCode).json({
       success: false,
       message: error.message
@@ -125,6 +138,25 @@ export const clientsController = {
       );
 
       res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      handleClientError(error, res, next);
+    }
+  },
+
+  async requestPlanUpdate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const requester = parseRequester(req);
+      const input = notificationsSchema.planUpdateRequest.parse(req.body);
+      const result = await notificationsService.requestPlanUpdate(
+        getClientId(req),
+        input,
+        requester ?? undefined
+      );
+
+      res.status(201).json({
         success: true,
         data: result
       });
