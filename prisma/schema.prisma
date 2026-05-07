@@ -160,6 +160,7 @@ model Coach {
   analytics          CoachAnalytics?
   relationships      CoachClientRelationship[] @relation("CoachRelationships")
   workoutPlans       WorkoutPlan[]
+  workoutPlanAssignments WorkoutPlanAssignment[] @relation("CoachWorkoutPlanAssignments")
   nutritionPlans     NutritionPlan[]
   customExercises    Exercise[]                @relation("CoachExercises")
   customFoodItems    FoodItem[]                @relation("CoachFoodItems")
@@ -196,6 +197,7 @@ model Client {
   deviceSessions     DeviceSession[]           @relation("ClientDeviceSessions")
   relationships      CoachClientRelationship[] @relation("ClientRelationships")
   workoutLogs        WorkoutLog[]
+  workoutPlanAssignments WorkoutPlanAssignment[] @relation("ClientWorkoutPlanAssignments")
   nutritionLogs      NutritionLog[]
   habits             Habit[]                   @relation("ClientHabits")
   habitLogs          HabitLog[]
@@ -299,12 +301,15 @@ model WorkoutPlan {
   isTemplate            Boolean                   @default(false) @map("is_template")
   isDraft               Boolean                   @default(false) @map("is_draft")
   tags                  String[]
+  version               Int                       @default(1)
   createdAt             DateTime                  @default(now()) @map("created_at")
   updatedAt             DateTime                  @updatedAt @map("updated_at")
   coach                 Coach                     @relation(fields: [coachId], references: [id], onDelete: Cascade)
   workoutDays           WorkoutDay[]
   assignedRelationships CoachClientRelationship[] @relation("AssignedWorkoutPlan")
+  assignments           WorkoutPlanAssignment[]
 
+  @@index([coachId, updatedAt])
   @@map("workout_plans")
 }
 
@@ -323,6 +328,7 @@ model WorkoutDay {
   workoutLogs         WorkoutLog[]
 
   @@index([workoutPlanId, weekNumber, orderIndex])
+  @@unique([workoutPlanId, weekNumber, orderIndex])
   @@map("workout_days")
 }
 
@@ -363,7 +369,27 @@ model WorkoutDayExercise {
   exercise     Exercise   @relation(fields: [exerciseId], references: [id])
 
   @@index([workoutDayId, orderIndex])
+  @@unique([workoutDayId, orderIndex])
   @@map("workout_day_exercises")
+}
+
+model WorkoutPlanAssignment {
+  id            String      @id @default(cuid())
+  coachId       String      @map("coach_id")
+  clientId      String      @map("client_id")
+  workoutPlanId String      @map("workout_plan_id")
+  startDate     DateTime    @map("start_date")
+  endDate       DateTime?   @map("end_date")
+  isActive      Boolean     @default(true) @map("is_active")
+  assignedBy    String      @map("assigned_by")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  coach         Coach       @relation("CoachWorkoutPlanAssignments", fields: [coachId], references: [id], onDelete: Cascade)
+  client        Client      @relation("ClientWorkoutPlanAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, clientId, isActive])
+  @@index([clientId, isActive, startDate])
+  @@map("workout_plan_assignments")
 }
 
 model NutritionPlan {
@@ -450,6 +476,8 @@ model WorkoutLog {
   clientId        String        @map("client_id")
   workoutDayId    String?       @map("workout_day_id")
   loggedAt        DateTime      @map("logged_at")
+  logDate         DateTime      @db.Date @map("log_date")
+  sourceEventId   String?       @unique @map("source_event_id")
   isCompleted     Boolean       @map("is_completed")
   durationMinutes Int?          @map("duration_minutes")
   perceivedEffort Int?          @map("perceived_effort")
@@ -460,6 +488,8 @@ model WorkoutLog {
   exerciseLogs    ExerciseLog[]
 
   @@index([clientId, loggedAt])
+  @@index([clientId, logDate])
+  @@unique([clientId, workoutDayId, logDate])
   @@map("workout_logs")
 }
 

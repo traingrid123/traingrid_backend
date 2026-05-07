@@ -24,7 +24,7 @@
     "node": ">=18.18.0"
   },
   "dependencies": {
-    "@prisma/client": "^7.5.0",
+    "@prisma/client": "^6.19.2",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.71.0",
     "compression": "^1.8.1",

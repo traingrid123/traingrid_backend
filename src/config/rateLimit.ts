@@ -6,3 +6,10 @@ export const appRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
+
+export const writeRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false
+});
