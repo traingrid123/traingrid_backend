@@ -21,6 +21,18 @@ const spec = swaggerJsdoc({
         description: "Direct room and message management"
       },
       {
+        name: "Clients",
+        description: "Client profile and dashboard operations"
+      },
+      {
+        name: "Coaches",
+        description: "Coach discovery, profile, and client management"
+      },
+      {
+        name: "Notifications",
+        description: "Coach and client notification operations"
+      },
+      {
         name: "Workouts",
         description: "Workout plan authoring, assignment, execution, and analytics"
       }
