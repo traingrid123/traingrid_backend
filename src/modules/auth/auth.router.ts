@@ -143,3 +143,7 @@ authRouter.post("/coach/register", authController.registerCoach);
  *               $ref: "#/components/schemas/ErrorResponse"
  */
 authRouter.post("/coach/login", authController.loginCoach);
+authRouter.get("/me", authController.getCurrentUser);
+authRouter.post("/logout", authController.logout);
+authRouter.get("/google", authController.startGoogleOAuth);
+authRouter.get("/google/callback", authController.handleGoogleCallback);

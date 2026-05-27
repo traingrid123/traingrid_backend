@@ -5,6 +5,11 @@ import { clientsRouter } from "../modules/clients/clients.router";
 import { coachesRouter } from "../modules/coaches/coaches.router";
 import { workoutPlansRouter } from "../modules/workouts/workoutPlans.router";
 import { notificationsRouter } from "../modules/notifications/notifications.router";
+import { analyticsRouter } from "../modules/analytics/analytics.router";
+import { progressRouter } from "../modules/progress/progress.router";
+import { habitsRouter } from "../modules/habits/habits.router";
+import { nutritionRouter } from "../modules/nutrition/nutritionPlans.router";
+import { relationshipsRouter } from "../modules/relationships/relationships.router";
 
 const router = Router();
 
@@ -18,7 +23,12 @@ router.get("/health", (_req, res) => {
 router.use("/chat", chatRouter);
 router.use("/clients", clientsRouter);
 router.use("/coaches", coachesRouter);
-router.use("/", workoutPlansRouter);
+router.use("/workouts", workoutPlansRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/analytics", analyticsRouter);
+router.use("/progress", progressRouter);
+router.use("/habits", habitsRouter);
+router.use("/nutrition", nutritionRouter);
+router.use("/relationships", relationshipsRouter);
 
 export default router;
