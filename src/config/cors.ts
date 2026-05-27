@@ -2,7 +2,12 @@ import cors from "cors";
 
 import { env } from "./env";
 
+const corsOrigins = env.CORS_ORIGIN
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const corsMiddleware = cors({
-  origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN,
+  origin: corsOrigins.includes("*") ? true : corsOrigins,
   credentials: true
 });
