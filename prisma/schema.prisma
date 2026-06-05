@@ -140,7 +140,9 @@ model Coach {
   profilePhoto       String?                   @map("profile_photo")
   city               String?
   country            String?
+  location           String?
   yearsExperience    Int?                      @map("years_experience")
+  specialization     String?
   specialisations    String[]
   monthlyFee         Decimal?                  @db.Decimal(10, 2) @map("monthly_fee")
   coachingMode       CoachingMode?             @map("coaching_mode")
@@ -151,6 +153,7 @@ model Coach {
   isVerified         Boolean                   @default(false) @map("is_verified")
   profileSlug        String?                   @unique @map("profile_slug")
   isActive           Boolean                   @default(true) @map("is_active")
+  setupCompleted     Boolean                   @default(false) @map("setup_completed")
   peopleTrainedCount Int                       @default(0) @map("people_trained_count")
   createdAt          DateTime                  @default(now()) @map("created_at")
   updatedAt          DateTime                  @updatedAt @map("updated_at")
@@ -185,12 +188,18 @@ model Client {
   dateOfBirth        DateTime?                 @map("date_of_birth")
   city               String?
   country            String?
+  age                Int?
   heightCm           Decimal?                  @db.Decimal(5, 2) @map("height_cm")
   startingWeight     Decimal?                  @db.Decimal(5, 2) @map("starting_weight")
   currentWeight      Decimal?                  @db.Decimal(5, 2) @map("current_weight")
   goalWeight         Decimal?                  @db.Decimal(5, 2) @map("goal_weight")
+  primaryGoal        String?                   @map("primary_goal")
   fitnessGoal        String?                   @map("fitness_goal")
+  experienceLevel    String?                   @map("experience_level")
+  dietaryPreference  String?                   @map("dietary_preference")
+  pastInjuries       String?                   @map("past_injuries")
   isActive           Boolean                   @default(true) @map("is_active")
+  setupCompleted     Boolean                   @default(false) @map("setup_completed")
   createdAt          DateTime                  @default(now()) @map("created_at")
   updatedAt          DateTime                  @updatedAt @map("updated_at")
   deviceSessions     DeviceSession[]           @relation("ClientDeviceSessions")

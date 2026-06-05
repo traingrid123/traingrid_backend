@@ -1,4 +1,4 @@
-import { ClientStatus, Prisma } from "@prisma/client";
+import { ClientStatus, NotificationType } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 
 export class RelationshipsError extends Error {
@@ -36,21 +36,117 @@ export const relationshipsService = {
         coach: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            fullName: true,
             email: true
           }
         },
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            fullName: true,
             email: true
           }
         }
       }
     });
+  },
+
+  requestCoach: async (clientId: string, coachId: string, data: any = {}) => {
+    const [existingCoach, existingClient] = await Promise.all([
+      prisma.coach.findUnique({
+        where: { id: coachId },
+        select: { id: true, fullName: true }
+      }),
+      prisma.client.findUnique({
+        where: { id: clientId },
+        select: { id: true, fullName: true }
+      })
+    ]);
+
+    if (!existingCoach) {
+      throw new RelationshipsError("Coach not found", 404);
+    }
+
+    if (!existingClient) {
+      throw new RelationshipsError("Client not found", 404);
+    }
+
+    const existing = await prisma.coachClientRelationship.findUnique({
+      where: {
+        coachId_clientId: { coachId, clientId }
+      }
+    });
+
+    const relationship = existing
+      ? await prisma.coachClientRelationship.update({
+          where: {
+            coachId_clientId: { coachId, clientId }
+          },
+          data: {
+            status: existing.status === ClientStatus.ACTIVE ? existing.status : ClientStatus.LEAD,
+            monthlyFee: data.monthlyFee ?? existing.monthlyFee ?? null,
+            notes: data.notes ?? existing.notes ?? null,
+            startDate: existing.startDate ?? new Date(),
+            endDate: null
+          },
+          include: {
+            coach: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            },
+            client: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            }
+          }
+        })
+      : await prisma.coachClientRelationship.create({
+          data: {
+            coachId,
+            clientId,
+            status: ClientStatus.LEAD,
+            startDate: new Date(),
+            monthlyFee: data.monthlyFee ?? null,
+            notes: data.notes ?? null
+          },
+          include: {
+            coach: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            },
+            client: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            }
+          }
+        });
+
+    await prisma.notification.create({
+      data: {
+        coachId,
+        type: NotificationType.NUDGE_COACH,
+        title: "New coach request",
+        body: `${existingClient.fullName} wants to join your coaching program.`,
+        data: {
+          clientId,
+          relationshipId: relationship.id
+        }
+      }
+    });
+
+    return relationship;
   },
 
   getCoachClients: async (coachId: string) => {

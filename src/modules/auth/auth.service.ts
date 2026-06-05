@@ -53,14 +53,6 @@ type AuthResponse<TUser> = {
   tokens: ReturnType<typeof sessionService.createSession>;
 };
 
-type GoogleProfile = {
-  sub: string;
-  email: string;
-  email_verified: boolean;
-  name: string;
-  picture?: string;
-};
-
 function normalizeIdentity(email?: string, phone?: string) {
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedPhone = phone ? normalizePhone(phone) : undefined;
@@ -333,9 +325,9 @@ export const authService = {
         email,
         phone,
         password: input.password,
-        tier: 'PRO',
-        specialisations: ['General Fitness'],
-        coachingMode: 'ONLINE'
+        tier: input.tier || 'PRO',
+        specialisations: input.specialisations || ['General Fitness'],
+        coachingMode: input.coachingMode || 'ONLINE'
       });
     }
 

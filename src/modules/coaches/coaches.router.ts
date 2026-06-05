@@ -54,6 +54,7 @@ coachesRouter.get("/:coachId", coachesController.getProfile);
  *         description: Coach profile updated
  */
 coachesRouter.patch("/:coachId", coachesController.updateProfile);
+coachesRouter.put("/:coachId/profile", coachesController.updateProfile);
 
 /**
  * @openapi

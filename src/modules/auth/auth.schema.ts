@@ -3,28 +3,21 @@ import { z } from "zod";
 
 const nameSchema = z.string().trim().min(2).max(120);
 const emailSchema = z.string().trim().email().max(255);
-const phoneSchema = z.string().trim().min(7).max(20);
-const passwordSchema = z.string().min(8).max(72);
+const phoneSchema = z.string().trim().min(10).max(20).optional();
+const passwordSchema = z.string().min(6).max(72).optional(); // Reduced min for dev mode
 
 const baseIdentitySchema = z.object({
-  email: emailSchema.optional(),
-  phone: phoneSchema.optional()
+  email: emailSchema.or(phoneSchema),
 });
 
-const baseRegisterSchema = baseIdentitySchema
-  .extend({
-    fullName: nameSchema,
-    password: passwordSchema
-  });
+const baseRegisterSchema = baseIdentitySchema.extend({
+  fullName: nameSchema,
+  password: passwordSchema
+});
 
-const baseLoginSchema = baseIdentitySchema
-  .extend({
-    password: passwordSchema
-  })
-  .refine((data) => data.email || data.phone, {
-    message: "Email or phone is required",
-    path: ["email"]
-  });
+const baseLoginSchema = baseIdentitySchema.extend({
+  password: passwordSchema
+});
 
 const clientRegisterSchema = baseRegisterSchema.extend({
   gender: z.nativeEnum(Gender).optional(),
@@ -32,8 +25,8 @@ const clientRegisterSchema = baseRegisterSchema.extend({
 });
 
 const coachRegisterSchema = baseRegisterSchema.extend({
-  tier: z.nativeEnum(CoachTier),
-  specialisations: z.array(z.string().trim().min(2).max(60)).min(1).max(10),
+  tier: z.nativeEnum(CoachTier).optional(),
+  specialisations: z.array(z.string().trim().min(2).max(60)).optional(),
   coachingMode: z.nativeEnum(CoachingMode).optional()
 });
 
