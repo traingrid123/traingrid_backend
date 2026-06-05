@@ -248,7 +248,9 @@ function mapCoachProfile(coach: CoachProfileRecord | null) {
     profilePhoto: coach.profilePhoto,
     city: coach.city,
     country: coach.country,
+    location: coach.location,
     yearsExperience: coach.yearsExperience,
+    specialization: coach.specialization,
     specialisations: coach.specialisations,
     monthlyFee: toNumber(coach.monthlyFee),
     coachingMode: coach.coachingMode,
@@ -258,6 +260,7 @@ function mapCoachProfile(coach: CoachProfileRecord | null) {
     tier: coach.tier,
     isVerified: coach.isVerified,
     isActive: coach.isActive,
+    setupCompleted: coach.setupCompleted,
     peopleTrainedCount: coach.peopleTrainedCount,
     profileSlug: coach.profileSlug,
     certifications: coach.certifications.map((item) => ({
@@ -390,10 +393,13 @@ export const coachesService = {
           fullName: input.fullName,
           gender: input.gender === null ? null : input.gender,
           profilePhoto: input.profilePhoto === null ? null : input.profilePhoto,
+          location: input.location === null ? null : input.location,
           city: input.city === null ? null : input.city,
           country: input.country === null ? null : input.country,
           yearsExperience:
             input.yearsExperience === null ? null : input.yearsExperience,
+          specialization:
+            input.specialization === null ? null : input.specialization,
           specialisations: input.specialisations,
           monthlyFee:
             input.monthlyFee === null || input.monthlyFee === undefined
@@ -410,6 +416,7 @@ export const coachesService = {
           tier: input.tier,
           isVerified: input.isVerified,
           isActive: input.isActive,
+          setupCompleted: input.setupCompleted ?? true,
           peopleTrainedCount: input.peopleTrainedCount,
           profileSlug
         },

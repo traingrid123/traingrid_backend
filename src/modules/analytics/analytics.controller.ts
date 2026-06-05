@@ -5,7 +5,8 @@ import { analyticsService, AnalyticsError } from "./analytics.service";
 export const analyticsController = {
   getCoachDashboard: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
+      // TEMPORARY BYPASS - Use auth middleware data
+      const coachId = req.auth?.userId || req.user?.id;
       if (!coachId) {
         return res.status(401).json({
           success: false,
@@ -36,7 +37,8 @@ export const analyticsController = {
 
   getCoachMetrics: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
+      // TEMPORARY BYPASS - Use auth middleware data
+      const coachId = req.auth?.userId || req.user?.id;
       if (!coachId) {
         return res.status(401).json({
           success: false,
@@ -61,7 +63,7 @@ export const analyticsController = {
   getClientProgress: async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const coachId = req.user?.id;
+      const coachId = req.auth?.userId || req.user?.id;
 
       if (!coachId) {
         return res.status(401).json({
@@ -93,7 +95,7 @@ export const analyticsController = {
 
   getTopClients: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
+      const coachId = req.auth?.userId || req.user?.id;
       const { limit } = req.query;
 
       if (!coachId) {

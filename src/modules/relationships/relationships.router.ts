@@ -7,6 +7,7 @@ export const relationshipsRouter = Router();
 relationshipsRouter.use(authMiddleware);
 
 relationshipsRouter.post("/", relationshipsController.createRelationship);
+relationshipsRouter.post("/client/request", relationshipsController.requestCoach);
 
 relationshipsRouter.get("/coach/clients", relationshipsController.getCoachClients);
 

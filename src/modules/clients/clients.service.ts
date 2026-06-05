@@ -143,11 +143,17 @@ export const clientsService = {
       dateOfBirth: client.dateOfBirth,
       city: client.city,
       country: client.country,
+      age: client.age,
       heightCm: toNumber(client.heightCm),
       startingWeight: toNumber(client.startingWeight),
       currentWeight: toNumber(client.currentWeight),
       goalWeight: toNumber(client.goalWeight),
+      primaryGoal: client.primaryGoal,
       fitnessGoal: client.fitnessGoal,
+      experienceLevel: client.experienceLevel,
+      dietaryPreference: client.dietaryPreference,
+      pastInjuries: client.pastInjuries,
+      setupCompleted: client.setupCompleted,
       isActive: client.isActive,
       createdAt: client.createdAt,
       coachSummary: client.relationships[0]
@@ -191,6 +197,7 @@ export const clientsService = {
         dateOfBirth: input.dateOfBirth === null ? null : input.dateOfBirth,
         city: input.city === null ? null : input.city,
         country: input.country === null ? null : input.country,
+        age: input.age === null ? null : input.age,
         heightCm:
           input.heightCm === null || input.heightCm === undefined
             ? input.heightCm === null
@@ -215,7 +222,14 @@ export const clientsService = {
               ? null
               : undefined
             : input.goalWeight,
+        primaryGoal: input.primaryGoal === null ? null : input.primaryGoal,
         fitnessGoal: input.fitnessGoal === null ? null : input.fitnessGoal,
+        experienceLevel:
+          input.experienceLevel === null ? null : input.experienceLevel,
+        dietaryPreference:
+          input.dietaryPreference === null ? null : input.dietaryPreference,
+        pastInjuries: input.pastInjuries === null ? null : input.pastInjuries,
+        setupCompleted: input.setupCompleted ?? true,
         isActive: input.isActive
       }
     });
@@ -228,11 +242,17 @@ export const clientsService = {
       dateOfBirth: updated.dateOfBirth,
       city: updated.city,
       country: updated.country,
+      age: updated.age,
       heightCm: toNumber(updated.heightCm),
       startingWeight: toNumber(updated.startingWeight),
       currentWeight: toNumber(updated.currentWeight),
       goalWeight: toNumber(updated.goalWeight),
+      primaryGoal: updated.primaryGoal,
       fitnessGoal: updated.fitnessGoal,
+      experienceLevel: updated.experienceLevel,
+      dietaryPreference: updated.dietaryPreference,
+      pastInjuries: updated.pastInjuries,
+      setupCompleted: updated.setupCompleted,
       isActive: updated.isActive
     };
   },

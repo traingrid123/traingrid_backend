@@ -1,8 +1,29 @@
-import { Coach, Client } from "@prisma/client";
-
 import type { AuthRole } from "./token.service";
 
-export function mapClient(client: Client) {
+type ClientAuthView = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  gender: "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY" | null;
+  isActive: boolean;
+  createdAt: Date;
+};
+
+type CoachAuthView = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  tier: "ADVANCED" | "PRO" | "ELITE";
+  specialisations: string[];
+  coachingMode: "ONLINE" | "HYBRID" | "IN_PERSON" | null;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: Date;
+};
+
+export function mapClient(client: ClientAuthView) {
   return {
     id: client.id,
     role: "client" as AuthRole,
@@ -15,7 +36,7 @@ export function mapClient(client: Client) {
   };
 }
 
-export function mapCoach(coach: Coach) {
+export function mapCoach(coach: CoachAuthView) {
   return {
     id: coach.id,
     role: "coach" as AuthRole,

@@ -1,0 +1,12 @@
+ALTER TABLE "clients"
+  ADD COLUMN IF NOT EXISTS "age" INTEGER,
+  ADD COLUMN IF NOT EXISTS "primary_goal" TEXT,
+  ADD COLUMN IF NOT EXISTS "experience_level" TEXT,
+  ADD COLUMN IF NOT EXISTS "dietary_preference" TEXT,
+  ADD COLUMN IF NOT EXISTS "past_injuries" TEXT,
+  ADD COLUMN IF NOT EXISTS "setup_completed" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "coaches"
+  ADD COLUMN IF NOT EXISTS "location" TEXT,
+  ADD COLUMN IF NOT EXISTS "specialization" TEXT,
+  ADD COLUMN IF NOT EXISTS "setup_completed" BOOLEAN NOT NULL DEFAULT false;

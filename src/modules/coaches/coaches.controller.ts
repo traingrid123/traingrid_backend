@@ -6,6 +6,14 @@ import { coachesSchema } from "./coaches.schema";
 import { CoachError, coachesService } from "./coaches.service";
 
 function parseRequester(req: Request) {
+  // TEMPORARY BYPASS - Use auth middleware data
+  if (req.auth) {
+    return {
+      role: req.auth.role,
+      userId: req.auth.userId
+    } as const;
+  }
+
   const header = req.headers.authorization;
 
   if (!header) {

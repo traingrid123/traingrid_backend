@@ -41,6 +41,7 @@ clientsRouter.get("/:clientId", clientsController.getProfile);
  *         description: Client profile updated
  */
 clientsRouter.patch("/:clientId", clientsController.updateProfile);
+clientsRouter.put("/:clientId/profile", clientsController.updateProfile);
 
 /**
  * @openapi

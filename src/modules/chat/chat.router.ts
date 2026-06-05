@@ -6,6 +6,64 @@ export const chatRouter = Router();
 
 /**
  * @openapi
+ * /chat/socket:
+ *   get:
+ *     tags:
+ *       - Chat Realtime
+ *     summary: Socket.IO chat contract reference
+ *     description: |
+ *       Realtime chat is served over Socket.IO on the same host/port as this API.
+ *
+ *       Client connection example:
+ *       `io(API_URL, { auth: { token: "<accessToken>" } })`
+ *
+ *       Supported auth in socket handshake:
+ *       - Preferred: `auth.token` or `auth.accessToken` (JWT access token)
+ *       - Legacy fallback: `auth.userId` + `auth.role` (`coach` or `client`)
+ *
+ *       Incoming events from client:
+ *       - `room:join` payload: `{ roomId: string }` (ack returns standard success/message shape)
+ *       - `message:send` payload: `{ roomId, type, content?, fileUrl?, fileName?, fileMimeType? }`
+ *       - `room:read` payload: `{ roomId, readAt? }`
+ *
+ *       Server-emitted events:
+ *       - `rooms:joined` payload: `{ roomIds: string[] }`
+ *       - `message:new` payload: `ChatMessage`
+ *       - `room:updated` payload: `ChatRoom`
+ *       - `room:read` payload: `{ roomId, userId, role, readAt }`
+ *       - `connection:error` payload: `{ message }`
+ *     responses:
+ *       200:
+ *         description: Socket.IO event contract for frontend integration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     transport:
+ *                       type: string
+ *                       example: socket.io
+ *                     namespace:
+ *                       type: string
+ *                       example: /
+ *                     auth:
+ *                       $ref: "#/components/schemas/ChatSocketAuth"
+ *                     ackShape:
+ *                       $ref: "#/components/schemas/ChatSocketAck"
+ *                     events:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: string
+ */
+
+/**
+ * @openapi
  * /chat/rooms/direct:
  *   post:
  *     tags:

@@ -7,6 +7,18 @@ import { authSchema } from "./auth.schema";
 import { AuthError, authService } from "./auth.service";
 import { tokenService } from "./token.service";
 
+function parseRole(value: unknown): "coach" | "client" {
+  if (Array.isArray(value)) {
+    return parseRole(value[0]);
+  }
+
+  if (typeof value !== "string") {
+    return "client";
+  }
+
+  return value.trim().toLowerCase() === "coach" ? "coach" : "client";
+}
+
 function handleAuthError(
   error: unknown,
   res: Response,
@@ -99,17 +111,16 @@ export const authController = {
 
   async getCurrentUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const header = req.headers.authorization;
-      const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
-
-      if (!token) {
-        throw new AuthError("Authorization token is required", 401);
+      if (!req.auth) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated"
+        });
       }
 
-      const payload = tokenService.verifyAccessToken(token);
       const user = await authService.getCurrentUser({
-        sub: payload.sub,
-        role: payload.role
+        sub: req.auth.userId,
+        role: req.auth.role
       });
 
       res.status(200).json({
@@ -131,53 +142,16 @@ export const authController = {
   },
 
   async startGoogleOAuth(req: Request, res: Response, next: NextFunction) {
-    try {
-      const role = req.query.role === "coach" ? "coach" : "client";
-      const url = authService.getGoogleAuthorizationUrl(role);
-
-      res.redirect(url);
-    } catch (error) {
-      handleAuthError(error, res, next);
-    }
+    res.status(501).json({
+      success: false,
+      message: "Google OAuth not available in MVP"
+    });
   },
 
   async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
-    try {
-      const code = typeof req.query.code === "string" ? req.query.code : undefined;
-      const state = typeof req.query.state === "string" ? req.query.state : undefined;
-      const errorCode = typeof req.query.error === "string" ? req.query.error : undefined;
-
-      if (errorCode) {
-        const redirect = new URL("/auth/callback", env.FRONTEND_URL);
-        redirect.search = new URLSearchParams({
-          role: "client",
-          error: errorCode
-        }).toString();
-
-        res.redirect(redirect.toString());
-        return;
-      }
-
-      if (!code) {
-        throw new AuthError("Google authorization code is missing", 400);
-      }
-
-      const result = await authService.authenticateWithGoogle({ code, state });
-      const redirect = new URL("/auth/callback", env.FRONTEND_URL);
-      redirect.search = new URLSearchParams({
-        role: result.role,
-        token: result.response.tokens.accessToken
-      }).toString();
-
-      res.redirect(redirect.toString());
-    } catch (error) {
-      const redirect = new URL("/auth/callback", env.FRONTEND_URL);
-      redirect.search = new URLSearchParams({
-        role: "client",
-        error: error instanceof Error ? error.message : "oauth_callback_failed"
-      }).toString();
-
-      res.redirect(redirect.toString());
-    }
+    res.status(501).json({
+      success: false,
+      message: "Google OAuth not available in MVP"
+    });
   }
 };

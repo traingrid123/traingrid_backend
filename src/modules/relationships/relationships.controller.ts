@@ -1,10 +1,27 @@
 import { Request, Response } from "express";
 import { relationshipsService, RelationshipsError } from "./relationships.service";
+import { relationshipsSchema } from "./relationships.schema";
+
+type AuthRequest = Request & {
+  auth?: {
+    userId: string;
+    role: "coach" | "client";
+  };
+};
+
+function getAuth(req: Request) {
+  return (req as AuthRequest).auth;
+}
+
+function getParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 export const relationshipsController = {
   createRelationship: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
+      const auth = getAuth(req);
+      const coachId = auth?.userId;
       const { clientId, ...data } = req.body;
 
       if (!coachId) {
@@ -35,9 +52,53 @@ export const relationshipsController = {
     }
   },
 
+  requestCoach: async (req: Request, res: Response) => {
+    try {
+      const auth = getAuth(req);
+      const clientId = auth?.userId;
+      const { coachId, monthlyFee, notes } = relationshipsSchema.requestCoach.parse(req.body);
+
+      if (!clientId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized"
+        });
+      }
+
+      if (auth?.role !== "client") {
+        return res.status(403).json({
+          success: false,
+          error: "Only clients can request a coach"
+        });
+      }
+
+      const relationship = await relationshipsService.requestCoach(clientId, coachId, {
+        monthlyFee,
+        notes
+      });
+
+      res.status(201).json({
+        success: true,
+        data: relationship
+      });
+    } catch (error) {
+      if (error instanceof RelationshipsError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          error: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        error: "Failed to request coach"
+      });
+    }
+  },
+
   getCoachClients: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
+      const coachId = getAuth(req)?.userId;
 
       if (!coachId) {
         return res.status(401).json({
@@ -62,7 +123,7 @@ export const relationshipsController = {
 
   getClientCoaches: async (req: Request, res: Response) => {
     try {
-      const clientId = req.user?.id;
+      const clientId = getAuth(req)?.userId;
 
       if (!clientId) {
         return res.status(401).json({
@@ -87,8 +148,8 @@ export const relationshipsController = {
 
   getRelationship: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
-      const { clientId } = req.params;
+      const coachId = getAuth(req)?.userId;
+      const clientId = getParam(req.params.clientId);
 
       if (!coachId) {
         return res.status(401).json({
@@ -120,8 +181,8 @@ export const relationshipsController = {
 
   updateRelationship: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
-      const { clientId } = req.params;
+      const coachId = getAuth(req)?.userId;
+      const clientId = getParam(req.params.clientId);
 
       if (!coachId) {
         return res.status(401).json({
@@ -153,8 +214,8 @@ export const relationshipsController = {
 
   endRelationship: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
-      const { clientId } = req.params;
+      const coachId = getAuth(req)?.userId;
+      const clientId = getParam(req.params.clientId);
 
       if (!coachId) {
         return res.status(401).json({
@@ -186,8 +247,8 @@ export const relationshipsController = {
 
   assignWorkoutPlan: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
-      const { clientId } = req.params;
+      const coachId = getAuth(req)?.userId;
+      const clientId = getParam(req.params.clientId);
       const { workoutPlanId } = req.body;
 
       if (!coachId) {
@@ -213,8 +274,8 @@ export const relationshipsController = {
 
   assignNutritionPlan: async (req: Request, res: Response) => {
     try {
-      const coachId = req.user?.id;
-      const { clientId } = req.params;
+      const coachId = getAuth(req)?.userId;
+      const clientId = getParam(req.params.clientId);
       const { nutritionPlanId } = req.body;
 
       if (!coachId) {

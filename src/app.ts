@@ -26,6 +26,7 @@ export function createApp() {
   registerSwagger(app);
   app.use("/auth", authRouter);
   app.use(routes);
+  app.use("/api", routes);
   app.use(notFoundHandler);
   app.use(errorHandler);
 
