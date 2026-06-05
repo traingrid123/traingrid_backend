@@ -2,6 +2,7 @@
   "name": "traingrid-backend",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.3.0",
   "description": "TrainGrid backend starter scaffold",
   "main": "dist/server.js",
   "scripts": {
@@ -12,8 +13,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down",
+    "docker:build": "docker compose -f docker-compose.dev.yml build",
+    "docker:up": "docker compose -f docker-compose.dev.yml up -d",
+    "docker:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f docker-compose.dev.yml logs -f backend-api",
+    "docker:shell": "docker compose -f docker-compose.dev.yml exec backend-api sh", 
     "worker": "tsx src/jobs/worker.ts",
     "seed": "tsx scripts/seed-db.ts"
   },
