@@ -192,6 +192,30 @@ workoutPlansRouter.post(
   workoutPlansController.duplicateCoachPlan
 );
 
+workoutPlansRouter.post(
+  "/coaches/:coachId/workout-plans/:planId/archive",
+  authMiddleware,
+  roleMiddleware(["coach"]),
+  writeRateLimit,
+  workoutPlansController.archiveCoachPlan
+);
+
+workoutPlansRouter.post(
+  "/coaches/:coachId/workout-plans/:planId/unarchive",
+  authMiddleware,
+  roleMiddleware(["coach"]),
+  writeRateLimit,
+  workoutPlansController.unarchiveCoachPlan
+);
+
+workoutPlansRouter.delete(
+  "/coaches/:coachId/workout-plans/:planId",
+  authMiddleware,
+  roleMiddleware(["coach"]),
+  writeRateLimit,
+  workoutPlansController.deleteCoachPlan
+);
+
 /**
  * @openapi
  * /coaches/{coachId}/workout-plan-assignments:

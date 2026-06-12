@@ -13,3 +13,11 @@ export const writeRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
+
+export const usdaRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "USDA search rate limit exceeded" }
+});

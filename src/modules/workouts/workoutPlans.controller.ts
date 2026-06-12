@@ -57,10 +57,57 @@ export const workoutPlansController = {
   async listCoachPlans(req: Request, res: Response, next: NextFunction) {
     try {
       const coachId = getParam(req, "coachId");
-      const pagination = workoutsSchema.pagination.parse(req.query);
+      const filters = workoutsSchema.listFilters.parse(req.query);
       const result = await workoutPlansService.listCoachPlans(
         coachId,
-        pagination,
+        filters,
+        requesterFromRequest(req)
+      );
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      handleError(error, res, next);
+    }
+  },
+
+  async archiveCoachPlan(req: Request, res: Response, next: NextFunction) {
+    try {
+      const coachId = getParam(req, "coachId");
+      const planId = getParam(req, "planId");
+      const result = await workoutPlansService.setArchived(
+        coachId,
+        planId,
+        true,
+        requesterFromRequest(req)
+      );
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      handleError(error, res, next);
+    }
+  },
+
+  async unarchiveCoachPlan(req: Request, res: Response, next: NextFunction) {
+    try {
+      const coachId = getParam(req, "coachId");
+      const planId = getParam(req, "planId");
+      const result = await workoutPlansService.setArchived(
+        coachId,
+        planId,
+        false,
+        requesterFromRequest(req)
+      );
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      handleError(error, res, next);
+    }
+  },
+
+  async deleteCoachPlan(req: Request, res: Response, next: NextFunction) {
+    try {
+      const coachId = getParam(req, "coachId");
+      const planId = getParam(req, "planId");
+      const result = await workoutPlansService.deleteCoachPlan(
+        coachId,
+        planId,
         requesterFromRequest(req)
       );
       res.status(200).json({ success: true, data: result });

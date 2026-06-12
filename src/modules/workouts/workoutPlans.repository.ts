@@ -38,10 +38,39 @@ export const workoutPlansRepository = {
     });
   },
 
-  listCoachPlans(params: { coachId: string; page: number; limit: number }) {
+  listCoachPlans(params: {
+    coachId: string;
+    page: number;
+    limit: number;
+    search?: string;
+    level?: any;
+    tag?: string;
+    includeArchived?: boolean;
+    archivedOnly?: boolean;
+  }) {
     const skip = (params.page - 1) * params.limit;
+    const where: any = {
+      coachId: params.coachId,
+      ...(params.archivedOnly
+        ? { archivedAt: { not: null } }
+        : params.includeArchived
+        ? {}
+        : { archivedAt: null }),
+      ...(params.search
+        ? {
+            OR: [
+              { title: { contains: params.search, mode: "insensitive" } },
+              { description: { contains: params.search, mode: "insensitive" } },
+              { goal: { contains: params.search, mode: "insensitive" } }
+            ]
+          }
+        : {}),
+      ...(params.level ? { level: params.level } : {}),
+      ...(params.tag ? { tags: { has: params.tag } } : {})
+    };
+
     return prisma.workoutPlan.findMany({
-      where: { coachId: params.coachId },
+      where,
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       skip,
       take: params.limit,
@@ -56,9 +85,74 @@ export const workoutPlansRepository = {
     });
   },
 
-  countCoachPlans(coachId: string) {
-    return prisma.workoutPlan.count({
-      where: { coachId }
+  countCoachPlans(params: {
+    coachId: string;
+    search?: string;
+    level?: any;
+    tag?: string;
+    includeArchived?: boolean;
+    archivedOnly?: boolean;
+  }) {
+    const where: any = {
+      coachId: params.coachId,
+      ...(params.archivedOnly
+        ? { archivedAt: { not: null } }
+        : params.includeArchived
+        ? {}
+        : { archivedAt: null }),
+      ...(params.search
+        ? {
+            OR: [
+              { title: { contains: params.search, mode: "insensitive" } },
+              { description: { contains: params.search, mode: "insensitive" } },
+              { goal: { contains: params.search, mode: "insensitive" } }
+            ]
+          }
+        : {}),
+      ...(params.level ? { level: params.level } : {}),
+      ...(params.tag ? { tags: { has: params.tag } } : {})
+    };
+    return prisma.workoutPlan.count({ where });
+  },
+
+  setArchived(params: { coachId: string; planId: string; archived: boolean }) {
+    return prisma.workoutPlan.updateMany({
+      where: { id: params.planId, coachId: params.coachId },
+      data: { archivedAt: params.archived ? new Date() : null }
+    });
+  },
+
+  snapshotVersion(
+    tx: Prisma.TransactionClient,
+    params: { workoutPlanId: string; version: number; snapshot: Prisma.InputJsonValue }
+  ) {
+    return tx.workoutPlanVersion.create({
+      data: {
+        workoutPlanId: params.workoutPlanId,
+        version: params.version,
+        snapshot: params.snapshot
+      }
+    });
+  },
+
+  findLatestVersion(workoutPlanId: string) {
+    return prisma.workoutPlanVersion.findFirst({
+      where: { workoutPlanId },
+      orderBy: { version: "desc" }
+    });
+  },
+
+  migrateActiveAssignmentsToVersion(params: {
+    workoutPlanId: string;
+    planVersionId: string;
+    pinnedVersion: number;
+  }) {
+    return prisma.workoutPlanAssignment.updateMany({
+      where: { workoutPlanId: params.workoutPlanId, isActive: true },
+      data: {
+        planVersionId: params.planVersionId,
+        pinnedVersion: params.pinnedVersion
+      }
     });
   },
 
@@ -117,9 +211,12 @@ export const workoutPlansRepository = {
         exerciseId: string;
         sets?: number;
         reps?: string;
+        weightKg?: number;
         restSeconds?: number;
         durationSecs?: number;
         tempo?: string;
+        rpe?: number;
+        videoUrl?: string;
         notes?: string;
         orderIndex: number;
       }>;
@@ -142,9 +239,12 @@ export const workoutPlansRepository = {
                 exerciseId: exercise.exerciseId,
                 sets: exercise.sets,
                 reps: exercise.reps,
+                weightKg: exercise.weightKg,
                 restSeconds: exercise.restSeconds,
                 durationSecs: exercise.durationSecs,
                 tempo: exercise.tempo,
+                rpe: exercise.rpe,
+                videoUrl: exercise.videoUrl,
                 notes: exercise.notes,
                 orderIndex: exercise.orderIndex
               }))
@@ -184,9 +284,12 @@ export const workoutPlansRepository = {
                 exerciseId: exercise.exerciseId,
                 sets: exercise.sets,
                 reps: exercise.reps,
+                weightKg: exercise.weightKg,
                 restSeconds: exercise.restSeconds,
                 durationSecs: exercise.durationSecs,
                 tempo: exercise.tempo,
+                rpe: exercise.rpe,
+                videoUrl: exercise.videoUrl,
                 notes: exercise.notes,
                 orderIndex: exercise.orderIndex
               }))

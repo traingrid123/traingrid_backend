@@ -8,6 +8,7 @@ import {
   CreateWorkoutPlanInput,
   DuplicateWorkoutPlanInput,
   UpdateWorkoutPlanInput,
+  WorkoutListFiltersInput,
   WorkoutPaginationInput
 } from "./workouts.schema";
 import {
@@ -58,12 +59,15 @@ function mapPlan(plan: any) {
     coachId: plan.coachId,
     title: plan.title,
     description: plan.description,
+    goal: plan.goal,
     level: plan.level,
     durationWeeks: plan.durationWeeks,
+    estimatedMinutes: plan.estimatedMinutes,
     isTemplate: plan.isTemplate,
     isDraft: plan.isDraft,
     tags: plan.tags,
     version: plan.version,
+    archivedAt: plan.archivedAt,
     createdAt: plan.createdAt,
     updatedAt: plan.updatedAt,
     days: (plan.workoutDays ?? []).map((day: any) => ({
@@ -83,13 +87,23 @@ function mapPlan(plan: any) {
         level: entry.exercise?.level,
         sets: entry.sets,
         reps: entry.reps,
+        weightKg: entry.weightKg ? Number(entry.weightKg) : null,
         restSeconds: entry.restSeconds,
         durationSecs: entry.durationSecs,
         tempo: entry.tempo,
+        rpe: entry.rpe ? Number(entry.rpe) : null,
+        videoUrl: entry.videoUrl ?? entry.exercise?.videoUrl ?? null,
         notes: entry.notes,
         orderIndex: entry.orderIndex
       }))
     }))
+  };
+}
+
+function buildSnapshot(plan: any) {
+  return {
+    version: plan.version,
+    plan: mapPlan(plan)
   };
 }
 
@@ -132,8 +146,10 @@ export const workoutPlansService = {
       },
       title: input.title,
       description: input.description ?? null,
+      goal: input.goal ?? null,
       level: input.level,
       durationWeeks: input.durationWeeks ?? null,
+      estimatedMinutes: input.estimatedMinutes ?? null,
       isTemplate: input.isTemplate,
       isDraft: input.isDraft,
       tags: input.tags,
@@ -150,9 +166,12 @@ export const workoutPlansService = {
               exerciseId: exercise.exerciseId,
               sets: exercise.sets ?? null,
               reps: exercise.reps ?? null,
+              weightKg: exercise.weightKg ?? null,
               restSeconds: exercise.restSeconds ?? null,
               durationSecs: exercise.durationSecs ?? null,
               tempo: exercise.tempo ?? null,
+              rpe: exercise.rpe ?? null,
+              videoUrl: exercise.videoUrl ?? null,
               notes: exercise.notes ?? null,
               orderIndex: exercise.orderIndex
             }))
@@ -166,39 +185,70 @@ export const workoutPlansService = {
 
   async listCoachPlans(
     coachId: string,
-    pagination: WorkoutPaginationInput,
+    filters: WorkoutListFiltersInput,
     requester?: Requester
   ) {
     ensureCoachAccess(coachId, requester);
     await ensureEntitiesExist({ coachId });
 
+    const baseParams = {
+      coachId,
+      search: filters.search,
+      level: filters.level,
+      tag: filters.tag,
+      includeArchived: filters.includeArchived,
+      archivedOnly: filters.archivedOnly
+    };
+
     const [items, total] = await Promise.all([
       workoutPlansRepository.listCoachPlans({
-        coachId,
-        page: pagination.page,
-        limit: pagination.limit
+        ...baseParams,
+        page: filters.page,
+        limit: filters.limit
       }),
-      workoutPlansRepository.countCoachPlans(coachId)
+      workoutPlansRepository.countCoachPlans(baseParams)
     ]);
 
     return {
-      items: items.map((item) => ({
+      items: items.map((item: any) => ({
         id: item.id,
         title: item.title,
+        description: item.description,
+        goal: item.goal,
         level: item.level,
         durationWeeks: item.durationWeeks,
+        estimatedMinutes: item.estimatedMinutes,
         isTemplate: item.isTemplate,
         isDraft: item.isDraft,
+        archivedAt: item.archivedAt,
         tags: item.tags,
         version: item.version,
         updatedAt: item.updatedAt,
         workoutDaysCount: item._count.workoutDays,
         activeAssignmentsCount: item._count.assignments
       })),
-      page: pagination.page,
-      limit: pagination.limit,
+      page: filters.page,
+      limit: filters.limit,
       total
     };
+  },
+
+  async setArchived(
+    coachId: string,
+    planId: string,
+    archived: boolean,
+    requester?: Requester
+  ) {
+    ensureCoachAccess(coachId, requester);
+    const result = await workoutPlansRepository.setArchived({
+      coachId,
+      planId,
+      archived
+    });
+    if (result.count === 0) {
+      throw new WorkoutError("Workout plan not found", 404);
+    }
+    return { id: planId, archived };
   },
 
   async getCoachPlan(coachId: string, planId: string, requester?: Requester) {
@@ -226,6 +276,9 @@ export const workoutPlansService = {
       throw new WorkoutError("Workout plan not found", 404);
     }
 
+    // Snapshot the existing version before mutation
+    const previousSnapshotData = buildSnapshot(existing);
+
     const updateResult = await workoutPlansRepository.updatePlanByIdVersion({
       coachId,
       planId,
@@ -233,8 +286,11 @@ export const workoutPlansService = {
       data: {
         title: input.title,
         description: input.description === undefined ? undefined : input.description,
+        goal: input.goal === undefined ? undefined : input.goal,
         level: input.level,
         durationWeeks: input.durationWeeks === undefined ? undefined : input.durationWeeks,
+        estimatedMinutes:
+          input.estimatedMinutes === undefined ? undefined : input.estimatedMinutes,
         isTemplate: input.isTemplate,
         isDraft: input.isDraft,
         tags: input.tags
@@ -267,12 +323,47 @@ export const workoutPlansService = {
       });
     }
 
+    // Persist the prior version snapshot, then optionally migrate active assignments
+    await prisma.$transaction(async (tx) => {
+      await workoutPlansRepository.snapshotVersion(tx, {
+        workoutPlanId: planId,
+        version: (existing as any).version,
+        snapshot: previousSnapshotData as unknown as Prisma.InputJsonValue
+      });
+    });
+
     const refreshed = await workoutPlansRepository.findCoachPlanById(coachId, planId);
     if (!refreshed) {
       throw new WorkoutError("Workout plan not found after update", 404);
     }
 
+    if (input.propagation === "MIGRATE_NEW") {
+      // Snapshot the new version and migrate active assignments
+      const newSnapshot = await prisma.workoutPlanVersion.create({
+        data: {
+          workoutPlanId: planId,
+          version: (refreshed as any).version,
+          snapshot: buildSnapshot(refreshed) as unknown as Prisma.InputJsonValue
+        }
+      });
+      await workoutPlansRepository.migrateActiveAssignmentsToVersion({
+        workoutPlanId: planId,
+        planVersionId: newSnapshot.id,
+        pinnedVersion: (refreshed as any).version
+      });
+    }
+
     return mapPlan(refreshed);
+  },
+
+  async deleteCoachPlan(coachId: string, planId: string, requester?: Requester) {
+    ensureCoachAccess(coachId, requester);
+    const existing = await workoutPlansRepository.findCoachPlanById(coachId, planId);
+    if (!existing) {
+      throw new WorkoutError("Workout plan not found", 404);
+    }
+    await prisma.workoutPlan.delete({ where: { id: planId } });
+    return { id: planId, deleted: true };
   },
 
   async duplicateCoachPlan(
@@ -325,60 +416,84 @@ export const workoutPlansService = {
     requester?: Requester
   ) {
     ensureCoachAccess(coachId, requester);
-    await ensureEntitiesExist({
-      coachId,
-      clientId: input.clientId,
-      planId: input.workoutPlanId
+
+    const clientIds = input.clientIds && input.clientIds.length > 0
+      ? input.clientIds
+      : input.clientId
+      ? [input.clientId]
+      : [];
+
+    if (clientIds.length === 0) {
+      throw new WorkoutError("clientId or clientIds is required", 400);
+    }
+
+    const plan = await workoutPlansRepository.findCoachPlanById(coachId, input.workoutPlanId);
+    if (!plan) throw new WorkoutError("Workout plan not found", 404);
+
+    // Snapshot the current plan version for this assignment cohort
+    const planVersion = await prisma.workoutPlanVersion.upsert({
+      where: {
+        workoutPlanId_version: {
+          workoutPlanId: plan.id,
+          version: (plan as any).version
+        }
+      },
+      create: {
+        workoutPlanId: plan.id,
+        version: (plan as any).version,
+        snapshot: buildSnapshot(plan) as unknown as Prisma.InputJsonValue
+      },
+      update: {}
     });
 
-    const assignment = await prisma.$transaction(async (tx) => {
-      await tx.workoutPlanAssignment.updateMany({
-        where: {
-          coachId,
-          clientId: input.clientId,
-          isActive: true
-        },
-        data: {
-          isActive: false,
-          endDate: input.startDate
-        }
-      });
+    const created: any[] = [];
 
-      const created = await tx.workoutPlanAssignment.create({
-        data: {
-          coachId,
-          clientId: input.clientId,
-          workoutPlanId: input.workoutPlanId,
-          startDate: input.startDate,
-          endDate: input.endDate ?? null,
-          isActive: true,
-          assignedBy: requester?.userId ?? coachId
+    await prisma.$transaction(async (tx) => {
+      for (const clientId of clientIds) {
+        const client = await tx.client.findUnique({
+          where: { id: clientId },
+          select: { id: true }
+        });
+        if (!client) {
+          throw new WorkoutError(`Client ${clientId} not found`, 404);
         }
-      });
 
-      await tx.coachClientRelationship.upsert({
-        where: {
-          coachId_clientId: {
+        await tx.workoutPlanAssignment.updateMany({
+          where: { coachId, clientId, isActive: true },
+          data: { isActive: false, endDate: input.startDate }
+        });
+
+        const assignment = await tx.workoutPlanAssignment.create({
+          data: {
             coachId,
-            clientId: input.clientId
+            clientId,
+            workoutPlanId: input.workoutPlanId,
+            planVersionId: planVersion.id,
+            pinnedVersion: (plan as any).version,
+            startDate: input.startDate,
+            endDate: input.endDate ?? null,
+            isActive: true,
+            assignedBy: requester?.userId ?? coachId
           }
-        },
-        update: {
-          workoutPlanId: input.workoutPlanId
-        },
-        create: {
-          coachId,
-          clientId: input.clientId,
-          status: "ACTIVE",
-          startDate: input.startDate,
-          workoutPlanId: input.workoutPlanId
-        }
-      });
+        });
 
-      return created;
+        await tx.coachClientRelationship.upsert({
+          where: { coachId_clientId: { coachId, clientId } },
+          update: { workoutPlanId: input.workoutPlanId },
+          create: {
+            coachId,
+            clientId,
+            status: "ACTIVE",
+            startDate: input.startDate,
+            workoutPlanId: input.workoutPlanId
+          }
+        });
+
+        created.push(assignment);
+      }
     });
 
-    return assignment;
+    return { count: created.length, assignments: created };
   },
 
   async getTodayWorkout(clientId: string, requester?: Requester) {
