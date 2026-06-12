@@ -140,3 +140,81 @@ clientsRouter.get("/:clientId/leaderboard", clientsController.getLeaderboard);
  *         description: Analytics fetched
  */
 clientsRouter.get("/:clientId/analytics", clientsController.getAnalytics);
+
+/**
+ * @openapi
+ * /clients/{clientId}/workouts/today:
+ *   get:
+ *     tags:
+ *       - Clients
+ *     summary: Get client's today's workout
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Today's workout fetched
+ */
+clientsRouter.get("/:clientId/workouts/today", clientsController.getTodayWorkout);
+
+/**
+ * @openapi
+ * /clients/{clientId}/workouts/{workoutDayId}:
+ *   get:
+ *     tags:
+ *       - Clients
+ *     summary: Get workout detail for a client workout day
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: workoutDayId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Workout detail fetched
+ */
+clientsRouter.get("/:clientId/workouts/:workoutDayId", clientsController.getWorkoutDetail);
+
+/**
+ * @openapi
+ * /clients/{clientId}/workouts/{workoutDayId}/complete:
+ *   post:
+ *     tags:
+ *       - Clients
+ *     summary: Mark a client workout as completed
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: workoutDayId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               completedExerciseIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Workout completion recorded
+ */
+clientsRouter.post("/:clientId/workouts/:workoutDayId/complete", clientsController.completeWorkout);

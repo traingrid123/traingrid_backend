@@ -595,5 +595,171 @@ export const clientsService = {
         };
       })
     };
+  },
+
+  async getTodayWorkout(clientId: string, requester?: ClientRequester) {
+    ensureClientAccess(clientId, requester);
+
+    const client = await clientsRepository.findById(clientId);
+
+    if (!client) {
+      throw new ClientError("Client not found", 404);
+    }
+
+    const relationship = client.relationships[0] ?? null;
+    const today = dayjs();
+    const todayWorkout = relationship?.workoutPlan?.workoutDays.find((day) => {
+      if (!day.dayOfWeek) {
+        return false;
+      }
+
+      return day.dayOfWeek === today.format("dddd").toUpperCase();
+    }) ?? relationship?.workoutPlan?.workoutDays[0];
+
+    if (!todayWorkout) {
+      return null;
+    }
+
+    const latestWorkoutLog = client.workoutLogs.find((log) =>
+      todayWorkout ? log.workoutDayId === todayWorkout.id : dayjs(log.loggedAt).isSame(today, "day")
+    );
+
+    return {
+      id: todayWorkout.id,
+      workoutDayId: todayWorkout.id,
+      title: todayWorkout.title ?? relationship?.workoutPlan?.title ?? "Today's workout",
+      status: latestWorkoutLog?.isCompleted ? "COMPLETED" : "PENDING",
+      date: today.toDate(),
+      notes: todayWorkout.notes,
+      exercises: todayWorkout.workoutDayExercises.map((entry) => ({
+        id: entry.id,
+        exerciseId: entry.exerciseId,
+        exerciseName: entry.exercise.name,
+        sets: entry.sets,
+        reps: entry.reps,
+        restSeconds: entry.restSeconds,
+        notes: entry.notes
+      }))
+    };
+  },
+
+  async getWorkoutDetail(clientId: string, workoutDayId: string, requester?: ClientRequester) {
+    ensureClientAccess(clientId, requester);
+
+    const client = await clientsRepository.findById(clientId);
+
+    if (!client) {
+      throw new ClientError("Client not found", 404);
+    }
+
+    const relationship = client.relationships[0] ?? null;
+
+    if (!relationship?.workoutPlan) {
+      throw new ClientError("No workout plan found for this client", 404);
+    }
+
+    const workoutDay = relationship.workoutPlan.workoutDays.find(
+      (day) => day.id === workoutDayId
+    );
+
+    if (!workoutDay) {
+      throw new ClientError("Workout not found", 404);
+    }
+
+    const latestWorkoutLog = client.workoutLogs.find((log) =>
+      log.workoutDayId === workoutDayId
+    );
+
+    return {
+      id: workoutDay.id,
+      workoutDayId: workoutDay.id,
+      title: workoutDay.title ?? relationship.workoutPlan.title,
+      weekNumber: workoutDay.weekNumber,
+      dayOfWeek: workoutDay.dayOfWeek,
+      isRestDay: workoutDay.isRestDay,
+      notes: workoutDay.notes,
+      status: latestWorkoutLog?.isCompleted ? "COMPLETED" : "PENDING",
+      exercises: workoutDay.workoutDayExercises.map((entry) => ({
+        id: entry.id,
+        exerciseId: entry.exerciseId,
+        exerciseName: entry.exercise.name,
+        sets: entry.sets,
+        reps: entry.reps,
+        restSeconds: entry.restSeconds,
+        durationSecs: entry.durationSecs,
+        notes: entry.notes,
+        orderIndex: entry.orderIndex
+      }))
+    };
+  },
+
+  async completeWorkout(
+    clientId: string,
+    workoutDayId: string,
+    input: { completedExerciseIds?: string[] } = {},
+    requester?: ClientRequester
+  ) {
+    ensureClientAccess(clientId, requester);
+
+    const client = await clientsRepository.findById(clientId);
+
+    if (!client) {
+      throw new ClientError("Client not found", 404);
+    }
+
+    const relationship = client.relationships[0] ?? null;
+
+    if (!relationship?.workoutPlan) {
+      throw new ClientError("No workout plan found for this client", 404);
+    }
+
+    const workoutDay = relationship.workoutPlan.workoutDays.find(
+      (day) => day.id === workoutDayId
+    );
+
+    if (!workoutDay) {
+      throw new ClientError("Workout not found", 404);
+    }
+
+    const existingLog = await prisma.workoutLog.findFirst({
+      where: {
+        clientId,
+        workoutDayId
+      }
+    });
+
+    if (existingLog) {
+      const updated = await prisma.workoutLog.update({
+        where: { id: existingLog.id },
+        data: {
+          isCompleted: true,
+          loggedAt: new Date()
+        }
+      });
+
+      return {
+        id: updated.id,
+        workoutDayId: updated.workoutDayId,
+        isCompleted: updated.isCompleted,
+        loggedAt: updated.loggedAt
+      };
+    }
+
+    const created = await prisma.workoutLog.create({
+      data: {
+        clientId,
+        workoutDayId,
+        isCompleted: true,
+        loggedAt: new Date(),
+        logDate: new Date()
+      }
+    });
+
+    return {
+      id: created.id,
+      workoutDayId: created.workoutDayId,
+      isCompleted: created.isCompleted,
+      loggedAt: created.loggedAt
+    };
   }
 };

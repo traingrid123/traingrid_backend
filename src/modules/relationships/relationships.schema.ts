@@ -13,6 +13,13 @@ export const relationshipsSchema = {
         notes: z.string().optional()
     }),
 
+    subscribeCoach: z.object({
+        coachId: z.string().min(1, "Coach ID required"),
+        monthlyFee: z.number().nonnegative().optional(),
+        planId: z.string().optional(),
+        notes: z.string().optional()
+    }),
+
     updateRelationship: z.object({
         status: z.enum(["ACTIVE", "PAUSED", "INACTIVE"]).optional(),
         monthlyFee: z.number().nonnegative().optional(),

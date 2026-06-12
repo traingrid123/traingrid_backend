@@ -199,5 +199,76 @@ export const clientsController = {
     } catch (error) {
       handleClientError(error, res, next);
     }
+  },
+
+  async getTodayWorkout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const requester = parseRequester(req);
+      const result = await clientsService.getTodayWorkout(
+        getClientId(req),
+        requester ?? undefined
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      handleClientError(error, res, next);
+    }
+  },
+
+  async getWorkoutDetail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const requester = parseRequester(req);
+      const workoutDayId = Array.isArray(req.params.workoutDayId)
+        ? req.params.workoutDayId[0]
+        : req.params.workoutDayId;
+
+      if (!workoutDayId) {
+        throw new ClientError("Workout day id is required", 400);
+      }
+
+      const result = await clientsService.getWorkoutDetail(
+        getClientId(req),
+        workoutDayId,
+        requester ?? undefined
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      handleClientError(error, res, next);
+    }
+  },
+
+  async completeWorkout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const requester = parseRequester(req);
+      const workoutDayId = Array.isArray(req.params.workoutDayId)
+        ? req.params.workoutDayId[0]
+        : req.params.workoutDayId;
+
+      if (!workoutDayId) {
+        throw new ClientError("Workout day id is required", 400);
+      }
+
+      const input = req.body || {};
+      const result = await clientsService.completeWorkout(
+        getClientId(req),
+        workoutDayId,
+        input,
+        requester ?? undefined
+      );
+
+      res.status(201).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      handleClientError(error, res, next);
+    }
   }
 };

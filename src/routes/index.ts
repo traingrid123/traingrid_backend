@@ -3,6 +3,7 @@ import { Router } from "express";
 import { chatRouter } from "../modules/chat/chat.router";
 import { clientsRouter } from "../modules/clients/clients.router";
 import { coachesRouter } from "../modules/coaches/coaches.router";
+import { pricingTiersRouter } from "../modules/coaches/pricingTiers.router";
 import { workoutPlansRouter } from "../modules/workouts/workoutPlans.router";
 import { notificationsRouter } from "../modules/notifications/notifications.router";
 import { analyticsRouter } from "../modules/analytics/analytics.router";
@@ -25,6 +26,7 @@ router.get("/health", (_req, res) => {
 router.use("/chat", chatRouter);
 router.use("/clients", clientsRouter);
 router.use("/coaches", coachesRouter);
+router.use("/pricing-tiers", pricingTiersRouter);
 router.use("/workouts", workoutPlansRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/analytics", analyticsRouter);
