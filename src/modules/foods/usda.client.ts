@@ -88,13 +88,13 @@ async function fetchWithRetry(
 
 export const usdaClient = {
   isConfigured(): boolean {
-    return Boolean(env.USDA_API_KEY);
+    return Boolean(env.VITE_USDA_API_KEY);
   },
 
   async search(query: string, pageSize = 25): Promise<UsdaSearchHit[]> {
-    if (!env.USDA_API_KEY) return [];
+    if (!env.VITE_USDA_API_KEY) return [];
     const url = new URL(`${env.USDA_BASE_URL}/foods/search`);
-    url.searchParams.set("api_key", env.USDA_API_KEY);
+    url.searchParams.set("api_key", env.VITE_USDA_API_KEY);
     url.searchParams.set("query", query);
     url.searchParams.set("pageSize", String(Math.min(Math.max(pageSize, 1), 50)));
     url.searchParams.set(
@@ -116,9 +116,9 @@ export const usdaClient = {
   },
 
   async detail(fdcId: string | number): Promise<UsdaFoodDetail | null> {
-    if (!env.USDA_API_KEY) return null;
+    if (!env.VITE_USDA_API_KEY) return null;
     const url = new URL(`${env.USDA_BASE_URL}/food/${fdcId}`);
-    url.searchParams.set("api_key", env.USDA_API_KEY);
+    url.searchParams.set("api_key", env.VITE_USDA_API_KEY);
     url.searchParams.set("format", "full");
 
     try {

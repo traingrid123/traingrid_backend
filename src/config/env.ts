@@ -26,7 +26,7 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => value !== "false"),
-  USDA_API_KEY: z.string().optional().default("igpNworMcrAU7FneUKywX5RPFiB8QvbA9fhHLvH0"),
+  VITE_USDA_API_KEY: z.string().optional().default("igpNworMcrAU7FneUKywX5RPFiB8QvbA9fhHLvH0"),
   USDA_BASE_URL: z.string().url().default("https://api.nal.usda.gov/fdc/v1"),
   USDA_CACHE_TTL_HOURS: z.coerce.number().int().min(1).max(8760).default(168)
 });

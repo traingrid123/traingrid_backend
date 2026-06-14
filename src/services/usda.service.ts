@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 const USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
-const USDA_API_KEY = process.env.USDA_API_KEY || '';
+const VITE_USDA_API_KEY = process.env.VITE_USDA_API_KEY || '';
 
 const usdaClient = axios.create({
   baseURL: USDA_BASE_URL,
   params: {
-    api_key: USDA_API_KEY
+    api_key: VITE_USDA_API_KEY
   }
 });
 

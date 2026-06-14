@@ -11,7 +11,6 @@ import { notificationsRouter } from "../modules/notifications/notifications.rout
 import { analyticsRouter } from "../modules/analytics/analytics.router";
 import { progressRouter } from "../modules/progress/progress.router";
 import { habitsRouter } from "../modules/habits/habits.router";
-import { nutritionRouter } from "../modules/nutrition/nutritionPlans.router";
 import { relationshipsRouter } from "../modules/relationships/relationships.router";
 import externalApisRouter from "./externalApis.router";
 import nutritionApisRouter from "./nutritionApis.router";
@@ -36,7 +35,6 @@ router.use("/notifications", notificationsRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/progress", progressRouter);
 router.use("/habits", habitsRouter);
-router.use("/nutrition", nutritionRouter);
 router.use("/relationships", relationshipsRouter);
 router.use("/external", externalApisRouter);
 router.use("/external", nutritionApisRouter);
