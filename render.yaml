@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: traingrid-backend
-    env: node
-    plan: free
-    buildCommand: pnpm install --frozen-lockfile
-    startCommand: pnpm start
