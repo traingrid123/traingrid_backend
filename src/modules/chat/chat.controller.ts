@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
-import { tokenService } from "../auth/token.service";
+import { resolveFirebaseAuthContext } from "../auth/firebase.session";
 import { chatSchema, ChatRequesterInput } from "./chat.schema";
 import { ChatError, chatService, ChatRequester } from "./chat.service";
 
-function parseAuthHeader(req: Request): ChatRequester | null {
+function parseBearerToken(req: Request): string | null {
   const header = req.headers.authorization;
 
   if (!header) {
@@ -18,11 +18,28 @@ function parseAuthHeader(req: Request): ChatRequester | null {
     return null;
   }
 
+  return token;
+}
+
+async function parseAuthHeader(req: Request): Promise<ChatRequester | null> {
+  if (req.auth) {
+    return {
+      role: req.auth.role,
+      userId: req.auth.userId
+    };
+  }
+
+  const token = parseBearerToken(req);
+
+  if (!token) {
+    return null;
+  }
+
   try {
-    const payload = tokenService.verifyAccessToken(token);
+    const payload = await resolveFirebaseAuthContext(token);
     return {
       role: payload.role,
-      userId: payload.sub
+      userId: payload.userId
     };
   } catch {
     throw new ChatError("Invalid access token", 401);
@@ -40,11 +57,11 @@ function getRoomId(req: Request): string {
   return roomId;
 }
 
-function resolveRequester(
+async function resolveRequester(
   req: Request,
   fallback: ChatRequesterInput
-): ChatRequester {
-  const fromHeader = parseAuthHeader(req);
+): Promise<ChatRequester> {
+  const fromHeader = await parseAuthHeader(req);
 
   if (fromHeader) {
     return fromHeader;
@@ -85,7 +102,7 @@ export const chatController = {
   async createDirectRoom(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.directRoom.parse(req.body);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const room = await chatService.createOrGetDirectRoom({
         coachId: input.coachId,
@@ -105,7 +122,7 @@ export const chatController = {
   async listRooms(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.listRooms.parse(req.query);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const result = await chatService.listRooms({
         requester,
@@ -126,7 +143,7 @@ export const chatController = {
   async getRoom(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.requester.parse(req.query);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const room = await chatService.getRoom({
         roomId: getRoomId(req),
@@ -145,7 +162,7 @@ export const chatController = {
   async listMessages(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.listMessages.parse(req.query);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const result = await chatService.listMessages({
         roomId: getRoomId(req),
@@ -166,7 +183,7 @@ export const chatController = {
   async sendMessage(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.sendMessage.parse(req.body);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const result = await chatService.sendMessage({
         roomId: getRoomId(req),
@@ -190,7 +207,7 @@ export const chatController = {
   async markRead(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.markRead.parse(req.body);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const result = await chatService.markRoomRead({
         roomId: getRoomId(req),
@@ -210,7 +227,7 @@ export const chatController = {
   async searchMessages(req: Request, res: Response, next: NextFunction) {
     try {
       const input = chatSchema.searchMessages.parse(req.query);
-      const requester = resolveRequester(req, input);
+      const requester = await resolveRequester(req, input);
 
       const result = await chatService.searchMessages({
         requester,

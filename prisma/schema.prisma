@@ -138,6 +138,7 @@ enum AssignmentPropagation {
 
 model Coach {
   id                 String                    @id @default(cuid())
+  firebaseUid        String?                   @unique @map("firebase_uid")
   email              String?                   @unique
   phone              String?                   @unique
   passwordHash       String                    @map("password_hash")
@@ -186,6 +187,7 @@ model Coach {
 
 model Client {
   id                 String                    @id @default(cuid())
+  firebaseUid        String?                   @unique @map("firebase_uid")
   email              String?                   @unique
   phone              String?                   @unique
   passwordHash       String                    @map("password_hash")

@@ -22,6 +22,10 @@ const envSchema = z.object({
   PASSWORD_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
   SWAGGER_ENABLED: z
     .string()
     .optional()

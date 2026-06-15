@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
-import { tokenService } from "../auth/token.service";
+import { resolveFirebaseAuthContext } from "../auth/firebase.session";
 import { notificationsSchema } from "../notifications/notifications.schema";
 import {
   NotificationError,
@@ -10,7 +10,7 @@ import {
 import { clientsSchema } from "./clients.schema";
 import { ClientError, clientsService } from "./clients.service";
 
-function parseRequester(req: Request) {
+function parseBearerToken(req: Request): string | null {
   const header = req.headers.authorization;
 
   if (!header) {
@@ -23,13 +23,23 @@ function parseRequester(req: Request) {
     return null;
   }
 
+  return token;
+}
+
+async function parseRequester(req: Request) {
+  if (req.auth) {
+    return req.auth;
+  }
+
+  const token = parseBearerToken(req);
+
+  if (!token) {
+    return null;
+  }
+
   try {
-    const payload = tokenService.verifyAccessToken(token);
-    return {
-      role: payload.role,
-      userId: payload.sub
-    } as const;
-  } catch {
+    return await resolveFirebaseAuthContext(token);
+  } catch (error) {
     throw new ClientError("Invalid access token", 401);
   }
 }
@@ -78,7 +88,7 @@ function handleClientError(error: unknown, res: Response, next: NextFunction) {
 export const clientsController = {
   async getProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await clientsService.getProfile(
         getClientId(req),
         requester ?? undefined
@@ -95,7 +105,7 @@ export const clientsController = {
 
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = clientsSchema.updateProfile.parse(req.body);
       const result = await clientsService.updateProfile(
         getClientId(req),
@@ -114,7 +124,7 @@ export const clientsController = {
 
   async getDashboard(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await clientsService.getDashboard(
         getClientId(req),
         requester ?? undefined
@@ -131,7 +141,7 @@ export const clientsController = {
 
   async getAssignedCoach(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await clientsService.getAssignedCoach(
         getClientId(req),
         requester ?? undefined
@@ -148,7 +158,7 @@ export const clientsController = {
 
   async requestPlanUpdate(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = notificationsSchema.planUpdateRequest.parse(req.body);
       const result = await notificationsService.requestPlanUpdate(
         getClientId(req),
@@ -167,7 +177,7 @@ export const clientsController = {
 
   async getLeaderboard(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = clientsSchema.leaderboard.parse(req.query);
       const result = await clientsService.getLeaderboard(
         getClientId(req),
@@ -186,7 +196,7 @@ export const clientsController = {
 
   async getAnalytics(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await clientsService.getAnalytics(
         getClientId(req),
         requester ?? undefined
@@ -203,7 +213,7 @@ export const clientsController = {
 
   async getTodayWorkout(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await clientsService.getTodayWorkout(
         getClientId(req),
         requester ?? undefined
@@ -220,7 +230,7 @@ export const clientsController = {
 
   async getWorkoutDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const workoutDayId = Array.isArray(req.params.workoutDayId)
         ? req.params.workoutDayId[0]
         : req.params.workoutDayId;
@@ -246,7 +256,7 @@ export const clientsController = {
 
   async completeWorkout(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const workoutDayId = Array.isArray(req.params.workoutDayId)
         ? req.params.workoutDayId[0]
         : req.params.workoutDayId;
