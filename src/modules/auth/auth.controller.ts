@@ -142,17 +142,54 @@ export const authController = {
   },
 
   async startGoogleOAuth(req: Request, res: Response, next: NextFunction) {
-    res.status(501).json({
-      success: false,
-      message: "Google OAuth not available in MVP"
-    });
+    try {
+      const role = req.query.role === "coach" ? "coach" : "client";
+      const url = authService.getGoogleAuthorizationUrl(role);
+
+      res.redirect(url);
+    } catch (error) {
+      handleAuthError(error, res, next);
+    }
   },
 
   async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
-    res.status(501).json({
-      success: false,
-      message: "Google OAuth not available in MVP"
-    });
+    try {
+      const code = typeof req.query.code === "string" ? req.query.code : undefined;
+      const state = typeof req.query.state === "string" ? req.query.state : undefined;
+      const errorCode = typeof req.query.error === "string" ? req.query.error : undefined;
+
+      if (errorCode) {
+        const redirect = new URL("/auth/callback", env.FRONTEND_URL);
+        redirect.search = new URLSearchParams({
+          role: "client",
+          error: errorCode
+        }).toString();
+
+        res.redirect(redirect.toString());
+        return;
+      }
+
+      if (!code) {
+        throw new AuthError("Google authorization code is missing", 400);
+      }
+
+      const result = await authService.authenticateWithGoogle({ code, state });
+      const redirect = new URL("/auth/callback", env.FRONTEND_URL);
+      redirect.search = new URLSearchParams({
+        role: result.role,
+        token: result.response.tokens.accessToken
+      }).toString();
+
+      res.redirect(redirect.toString());
+    } catch (error) {
+      const redirect = new URL("/auth/callback", env.FRONTEND_URL);
+      redirect.search = new URLSearchParams({
+        role: "client",
+        error: error instanceof Error ? error.message : "oauth_callback_failed"
+      }).toString();
+
+      res.redirect(redirect.toString());
+    }
   },
 
   async changePassword(req: Request, res: Response, next: NextFunction) {

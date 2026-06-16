@@ -6,14 +6,21 @@ import { createApp } from "./app";
 import { logger } from "./lib/logger";
 import { prisma } from "./lib/prisma";
 import { registerChatSocket } from "./modules/chat/chat.socket";
-// import { getRedisClient } from "./lib/redis";
+import { getRedisClient } from "./lib/redis";
 
 async function bootstrap(): Promise<void> {
   const app = createApp();
   const server = createServer(app);
   const io = new SocketIOServer(server, {
     cors: {
-      origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN,
+      origin: env.CORS_ORIGIN.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+        .includes("*")
+        ? true
+        : env.CORS_ORIGIN.split(",")
+          .map((origin) => origin.trim())
+          .filter(Boolean),
       credentials: true
     }
   });
@@ -27,12 +34,12 @@ async function bootstrap(): Promise<void> {
     logger.warn({ error }, "Prisma connection failed during startup");
   }
 
-  // try {
-  //   await getRedisClient().connect();
-  //   logger.info("Redis connected");
-  // } catch (error) {
-  //   logger.warn({ error }, "Redis connection failed during startup");
-  // }
+  try {
+    await getRedisClient().connect();
+    logger.info("Redis connected");
+  } catch (error) {
+    logger.warn({ error }, "Redis connection failed during startup");
+  }
 
   server.listen(env.PORT, () => {
     logger.info(`TrainGrid backend running on port ${env.PORT}`);

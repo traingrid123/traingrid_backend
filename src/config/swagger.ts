@@ -21,6 +21,10 @@ const spec = swaggerJsdoc({
         description: "Direct room and message management"
       },
       {
+        name: "Chat Realtime",
+        description: "Socket.IO realtime chat events and authentication contract"
+      },
+      {
         name: "Clients",
         description: "Client profile and dashboard operations"
       },
@@ -441,6 +445,34 @@ const spec = swaggerJsdoc({
             }
           },
           required: ["success", "data"]
+        },
+        ChatSocketAuth: {
+          type: "object",
+          description:
+            "Socket.IO handshake auth. Prefer JWT token. Legacy userId/role is supported for backward compatibility.",
+          properties: {
+            token: { type: "string", description: "JWT access token (recommended)" },
+            accessToken: {
+              type: "string",
+              description: "Alias of token; JWT access token"
+            },
+            userId: {
+              type: "string",
+              description: "Legacy fallback (not recommended)"
+            },
+            role: {
+              $ref: "#/components/schemas/ChatRole"
+            }
+          }
+        },
+        ChatSocketAck: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            data: { type: "object", nullable: true },
+            message: { type: "string", nullable: true }
+          },
+          required: ["success"]
         },
         WorkoutLevel: {
           type: "string",

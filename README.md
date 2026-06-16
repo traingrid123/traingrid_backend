@@ -139,5 +139,4 @@ Events:
 
 ## Known Gaps
 
-- Google OAuth stubs return 501 — intentionally skipped
 - File upload not implemented — resources store URLs only

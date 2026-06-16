@@ -9,6 +9,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   REDIS_URL: z.string().min(1, "REDIS_URL is required"),
   CORS_ORIGIN: z.string().default("*"),
+  FRONTEND_URL: z.string().url().default("http://localhost:5173"),
+  API_BASE_URL: z.string().url().default("http://localhost:4000"),
   JWT_ACCESS_SECRET: z
     .string()
     .min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
@@ -18,6 +20,8 @@ const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default("15m"),
   JWT_REFRESH_TTL: z.string().default("30d"),
   PASSWORD_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   SWAGGER_ENABLED: z
     .string()
     .optional()

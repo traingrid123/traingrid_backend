@@ -3,10 +3,21 @@ import type { Server, Socket } from "socket.io";
 import { ZodError } from "zod";
 
 import { logger } from "../../lib/logger";
+import { tokenService } from "../auth/token.service";
 import { chatSchema } from "./chat.schema";
 import { chatService, ChatRequester, ChatError } from "./chat.service";
 
 const validRoles = new Set(["coach", "client"] as const);
+
+export const chatSocketEvents = {
+  connectionError: "connection:error",
+  roomsJoined: "rooms:joined",
+  roomJoin: "room:join",
+  messageSend: "message:send",
+  roomRead: "room:read",
+  messageNew: "message:new",
+  roomUpdated: "room:updated"
+} as const;
 
 type AckPayload = {
   success: boolean;
@@ -36,7 +47,46 @@ type ReadRoomPayload = {
   readAt?: string;
 };
 
+function getAuthToken(socket: Socket): string | null {
+  const auth = socket.handshake.auth as Record<string, unknown> | undefined;
+  const tokenFromAuth =
+    typeof auth?.token === "string"
+      ? auth.token
+      : typeof auth?.accessToken === "string"
+        ? auth.accessToken
+        : null;
+
+  if (tokenFromAuth) {
+    return tokenFromAuth;
+  }
+
+  const header = socket.handshake.headers.authorization;
+  if (!header) {
+    return null;
+  }
+
+  const [type, token] = header.split(" ");
+  if (!token || type.toLowerCase() !== "bearer") {
+    return null;
+  }
+
+  return token;
+}
+
 function parseSocketUser(socket: Socket): SocketUser | null {
+  const token = getAuthToken(socket);
+  if (token) {
+    try {
+      const payload = tokenService.verifyAccessToken(token);
+      return {
+        userId: payload.sub,
+        role: payload.role
+      };
+    } catch {
+      return null;
+    }
+  }
+
   const auth = socket.handshake.auth as Record<string, unknown> | undefined;
   const userIdFromAuth = typeof auth?.userId === "string" ? auth.userId : null;
   const roleFromAuth = typeof auth?.role === "string" ? auth.role : null;
@@ -76,7 +126,7 @@ export function registerChatSocket(io: Server): void {
     }
 
     if (!user) {
-      socket.emit("error", { message: "Unauthorized" });
+      socket.emit(chatSocketEvents.connectionError, { message: "Unauthorized" });
       socket.disconnect(true);
       return;
     }
@@ -86,12 +136,12 @@ export function registerChatSocket(io: Server): void {
     try {
       const roomIds = await chatService.getRoomIdsForUser(user);
       roomIds.forEach((roomId) => socket.join(roomId));
-      socket.emit("rooms:joined", { roomIds });
+      socket.emit(chatSocketEvents.roomsJoined, { roomIds });
     } catch (error) {
       logger.warn({ error }, "Failed to join rooms on socket connect");
     }
 
-    socket.on("room:join", async (payload: JoinRoomPayload, ack?: AckFn) => {
+    socket.on(chatSocketEvents.roomJoin, async (payload: JoinRoomPayload, ack?: AckFn) => {
       try {
         if (!payload?.roomId) {
           throw new ChatError("Room id is required", 400);
@@ -107,7 +157,7 @@ export function registerChatSocket(io: Server): void {
       }
     });
 
-    socket.on("message:send", async (payload: SendMessagePayload, ack?: AckFn) => {
+    socket.on(chatSocketEvents.messageSend, async (payload: SendMessagePayload, ack?: AckFn) => {
       try {
         if (!payload?.roomId) {
           throw new ChatError("Room id is required", 400);
@@ -133,8 +183,8 @@ export function registerChatSocket(io: Server): void {
           fileMimeType: parsed.fileMimeType
         });
 
-        io.to(payload.roomId).emit("message:new", result.message);
-        io.to(payload.roomId).emit("room:updated", result.room);
+        io.to(payload.roomId).emit(chatSocketEvents.messageNew, result.message);
+        io.to(payload.roomId).emit(chatSocketEvents.roomUpdated, result.room);
 
         sendAck(ack, { success: true, data: result });
       } catch (error) {
@@ -148,7 +198,7 @@ export function registerChatSocket(io: Server): void {
       }
     });
 
-    socket.on("room:read", async (payload: ReadRoomPayload, ack?: AckFn) => {
+    socket.on(chatSocketEvents.roomRead, async (payload: ReadRoomPayload, ack?: AckFn) => {
       try {
         if (!payload?.roomId) {
           throw new ChatError("Room id is required", 400);
@@ -165,7 +215,7 @@ export function registerChatSocket(io: Server): void {
           readAt
         });
 
-        io.to(payload.roomId).emit("room:read", {
+        io.to(payload.roomId).emit(chatSocketEvents.roomRead, {
           roomId: payload.roomId,
           userId: user!.userId,
           role: user!.role,
