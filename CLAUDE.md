@@ -114,8 +114,3 @@ Run `pnpm run dev` and hit endpoints with curl/Postman to verify.
 - File upload: not implemented, resources store URLs only
 - Workers (`src/jobs/`) exist but some job triggers may need wiring to `addNotificationJob`
 
-## Git / Worktree Notes
-
-Active development may happen in `.claude/worktrees/` — changes need to be merged back to main branch when complete.
-
-Frontend lives at `/home/arnav/Documents/TrainGrid/traingrid_frontend`.
