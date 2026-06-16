@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 
-import { tokenService } from "../modules/auth/token.service";
+import { resolveFirebaseAuthContext } from "../modules/auth/firebase.session";
 
 declare global {
   namespace Express {
@@ -8,6 +8,7 @@ declare global {
       auth?: {
         userId: string;
         role: "coach" | "client";
+        firebaseUid: string;
       };
     }
   }
@@ -28,11 +29,11 @@ function parseBearerToken(req: Request): string | null {
   return token;
 }
 
-export function authMiddleware(
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const token = parseBearerToken(req);
 
   // DEV MODE: Allow requests without token for testing
@@ -46,16 +47,13 @@ export function authMiddleware(
   }
 
   try {
-    const payload = tokenService.verifyAccessToken(token);
-    req.auth = {
-      userId: payload.sub,
-      role: payload.role
-    };
+    const authContext = await resolveFirebaseAuthContext(token);
+    req.auth = authContext;
     next();
   } catch (error) {
     res.status(401).json({
       success: false,
-      message: "Invalid access token"
+      message: error instanceof Error ? error.message : "Invalid access token"
     });
   }
 }

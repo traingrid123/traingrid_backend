@@ -1,4 +1,4 @@
-import type { AuthRole } from "./token.service";
+import type { AuthRole } from "./auth.types";
 
 type ClientAuthView = {
   id: string;

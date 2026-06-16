@@ -130,8 +130,14 @@ enum WeekDay {
   SUNDAY
 }
 
+enum AssignmentPropagation {
+  KEEP_OLD
+  MIGRATE_NEW
+}
+
 model Coach {
   id                 String                    @id @default(cuid())
+  firebaseUid        String?                   @unique @map("firebase_uid")
   email              String?                   @unique
   phone              String?                   @unique
   passwordHash       String                    @map("password_hash")
@@ -163,6 +169,7 @@ model Coach {
   relationships      CoachClientRelationship[] @relation("CoachRelationships")
   workoutPlans       WorkoutPlan[]
   workoutPlanAssignments WorkoutPlanAssignment[] @relation("CoachWorkoutPlanAssignments")
+  nutritionPlanAssignments NutritionPlanAssignment[] @relation("CoachNutritionAssignments")
   nutritionPlans     NutritionPlan[]
   customExercises    Exercise[]                @relation("CoachExercises")
   customFoodItems    FoodItem[]                @relation("CoachFoodItems")
@@ -179,6 +186,7 @@ model Coach {
 
 model Client {
   id                 String                    @id @default(cuid())
+  firebaseUid        String?                   @unique @map("firebase_uid")
   email              String?                   @unique
   phone              String?                   @unique
   passwordHash       String                    @map("password_hash")
@@ -206,6 +214,7 @@ model Client {
   relationships      CoachClientRelationship[] @relation("ClientRelationships")
   workoutLogs        WorkoutLog[]
   workoutPlanAssignments WorkoutPlanAssignment[] @relation("ClientWorkoutPlanAssignments")
+  nutritionPlanAssignments NutritionPlanAssignment[] @relation("ClientNutritionAssignments")
   nutritionLogs      NutritionLog[]
   habits             Habit[]                   @relation("ClientHabits")
   habitLogs          HabitLog[]
@@ -304,21 +313,40 @@ model WorkoutPlan {
   coachId               String                    @map("coach_id")
   title                 String
   description           String?                   @db.Text
+  goal                  String?
   level                 DifficultyLevel
   durationWeeks         Int?                      @map("duration_weeks")
+  estimatedMinutes      Int?                      @map("estimated_minutes")
   isTemplate            Boolean                   @default(false) @map("is_template")
   isDraft               Boolean                   @default(false) @map("is_draft")
   tags                  String[]
   version               Int                       @default(1)
+  archivedAt            DateTime?                 @map("archived_at")
   createdAt             DateTime                  @default(now()) @map("created_at")
   updatedAt             DateTime                  @updatedAt @map("updated_at")
   coach                 Coach                     @relation(fields: [coachId], references: [id], onDelete: Cascade)
   workoutDays           WorkoutDay[]
   assignedRelationships CoachClientRelationship[] @relation("AssignedWorkoutPlan")
   assignments           WorkoutPlanAssignment[]
+  versions              WorkoutPlanVersion[]
 
   @@index([coachId, updatedAt])
+  @@index([coachId, archivedAt])
   @@map("workout_plans")
+}
+
+model WorkoutPlanVersion {
+  id            String      @id @default(cuid())
+  workoutPlanId String      @map("workout_plan_id")
+  version       Int
+  snapshot      Json
+  createdAt     DateTime    @default(now()) @map("created_at")
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  assignments   WorkoutPlanAssignment[]
+
+  @@unique([workoutPlanId, version])
+  @@index([workoutPlanId, version])
+  @@map("workout_plan_versions")
 }
 
 model WorkoutDay {
@@ -367,9 +395,12 @@ model WorkoutDayExercise {
   exerciseId   String     @map("exercise_id")
   sets         Int?
   reps         String?
+  weightKg     Decimal?   @db.Decimal(6, 2) @map("weight_kg")
   restSeconds  Int?       @map("rest_seconds")
   durationSecs Int?       @map("duration_secs")
   tempo        String?
+  rpe          Decimal?   @db.Decimal(3, 1)
+  videoUrl     String?    @map("video_url")
   notes        String?
   orderIndex   Int        @map("order_index")
   createdAt    DateTime   @default(now()) @map("created_at")
@@ -382,18 +413,21 @@ model WorkoutDayExercise {
 }
 
 model WorkoutPlanAssignment {
-  id            String      @id @default(cuid())
-  coachId       String      @map("coach_id")
-  clientId      String      @map("client_id")
-  workoutPlanId String      @map("workout_plan_id")
-  startDate     DateTime    @map("start_date")
-  endDate       DateTime?   @map("end_date")
-  isActive      Boolean     @default(true) @map("is_active")
-  assignedBy    String      @map("assigned_by")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  coach         Coach       @relation("CoachWorkoutPlanAssignments", fields: [coachId], references: [id], onDelete: Cascade)
-  client        Client      @relation("ClientWorkoutPlanAssignments", fields: [clientId], references: [id], onDelete: Cascade)
-  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  id              String              @id @default(cuid())
+  coachId         String              @map("coach_id")
+  clientId        String              @map("client_id")
+  workoutPlanId   String              @map("workout_plan_id")
+  planVersionId   String?             @map("plan_version_id")
+  pinnedVersion   Int?                @map("pinned_version")
+  startDate       DateTime            @map("start_date")
+  endDate         DateTime?           @map("end_date")
+  isActive        Boolean             @default(true) @map("is_active")
+  assignedBy      String              @map("assigned_by")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  coach           Coach               @relation("CoachWorkoutPlanAssignments", fields: [coachId], references: [id], onDelete: Cascade)
+  client          Client              @relation("ClientWorkoutPlanAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  workoutPlan     WorkoutPlan         @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  planVersion     WorkoutPlanVersion? @relation(fields: [planVersionId], references: [id], onDelete: SetNull)
 
   @@index([coachId, clientId, isActive])
   @@index([clientId, isActive, startDate])
@@ -405,22 +439,66 @@ model NutritionPlan {
   coachId               String                    @map("coach_id")
   title                 String
   description           String?                   @db.Text
+  goal                  String?
   dailyCalories         Int?                      @map("daily_calories")
   proteinGrams          Decimal?                  @db.Decimal(6, 2) @map("protein_grams")
   carbsGrams            Decimal?                  @db.Decimal(6, 2) @map("carbs_grams")
   fatsGrams             Decimal?                  @db.Decimal(6, 2) @map("fats_grams")
   fiberGrams            Decimal?                  @db.Decimal(6, 2) @map("fiber_grams")
+  waterMl               Int?                      @map("water_ml")
   durationWeeks         Int?                      @map("duration_weeks")
   isTemplate            Boolean                   @default(false) @map("is_template")
   isDraft               Boolean                   @default(false) @map("is_draft")
   tags                  String[]
+  version               Int                       @default(1)
+  archivedAt            DateTime?                 @map("archived_at")
   createdAt             DateTime                  @default(now()) @map("created_at")
   updatedAt             DateTime                  @updatedAt @map("updated_at")
   coach                 Coach                     @relation(fields: [coachId], references: [id], onDelete: Cascade)
   mealSections          MealSection[]
   assignedRelationships CoachClientRelationship[] @relation("AssignedNutritionPlan")
+  assignments           NutritionPlanAssignment[]
+  versions              NutritionPlanVersion[]
 
+  @@index([coachId, updatedAt])
+  @@index([coachId, archivedAt])
   @@map("nutrition_plans")
+}
+
+model NutritionPlanVersion {
+  id              String                    @id @default(cuid())
+  nutritionPlanId String                    @map("nutrition_plan_id")
+  version         Int
+  snapshot        Json
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  nutritionPlan   NutritionPlan             @relation(fields: [nutritionPlanId], references: [id], onDelete: Cascade)
+  assignments     NutritionPlanAssignment[]
+
+  @@unique([nutritionPlanId, version])
+  @@index([nutritionPlanId, version])
+  @@map("nutrition_plan_versions")
+}
+
+model NutritionPlanAssignment {
+  id              String                @id @default(cuid())
+  coachId         String                @map("coach_id")
+  clientId        String                @map("client_id")
+  nutritionPlanId String                @map("nutrition_plan_id")
+  planVersionId   String?               @map("plan_version_id")
+  pinnedVersion   Int?                  @map("pinned_version")
+  startDate       DateTime              @map("start_date")
+  endDate         DateTime?             @map("end_date")
+  isActive        Boolean               @default(true) @map("is_active")
+  assignedBy      String                @map("assigned_by")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  coach           Coach                 @relation("CoachNutritionAssignments", fields: [coachId], references: [id], onDelete: Cascade)
+  client          Client                @relation("ClientNutritionAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  nutritionPlan   NutritionPlan         @relation(fields: [nutritionPlanId], references: [id], onDelete: Cascade)
+  planVersion     NutritionPlanVersion? @relation(fields: [planVersionId], references: [id], onDelete: SetNull)
+
+  @@index([coachId, clientId, isActive])
+  @@index([clientId, isActive, startDate])
+  @@map("nutrition_plan_assignments")
 }
 
 model MealSection {
@@ -521,18 +599,46 @@ model NutritionLog {
   clientId         String      @map("client_id")
   mealSectionId    String?     @map("meal_section_id")
   loggedAt         DateTime    @map("logged_at")
+  logDate          DateTime?   @db.Date @map("log_date")
   isCompleted      Boolean     @map("is_completed")
   caloriesConsumed Int?        @map("calories_consumed")
   proteinConsumed  Decimal?    @db.Decimal(6, 2) @map("protein_consumed")
   carbsConsumed    Decimal?    @db.Decimal(6, 2) @map("carbs_consumed")
   fatsConsumed     Decimal?    @db.Decimal(6, 2) @map("fats_consumed")
+  waterMl          Int?        @map("water_ml")
   notes            String?
   createdAt        DateTime    @default(now()) @map("created_at")
   client           Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   mealSection      MealSection? @relation(fields: [mealSectionId], references: [id], onDelete: SetNull)
 
   @@index([clientId, loggedAt])
+  @@index([clientId, logDate])
   @@map("nutrition_logs")
+}
+
+model FoodCache {
+  id                 String    @id @default(cuid())
+  fdcId              String    @unique @map("fdc_id")
+  description        String
+  brandOwner         String?   @map("brand_owner")
+  dataType           String?   @map("data_type")
+  servingSize        Decimal?  @db.Decimal(8, 2) @map("serving_size")
+  servingSizeUnit    String?   @map("serving_size_unit")
+  caloriesPer100g    Decimal?  @db.Decimal(8, 2) @map("calories_per_100g")
+  proteinPer100g     Decimal?  @db.Decimal(8, 2) @map("protein_per_100g")
+  carbsPer100g       Decimal?  @db.Decimal(8, 2) @map("carbs_per_100g")
+  fatsPer100g        Decimal?  @db.Decimal(8, 2) @map("fats_per_100g")
+  fiberPer100g       Decimal?  @db.Decimal(8, 2) @map("fiber_per_100g")
+  raw                Json?
+  searchVector       String    @default("") @map("search_vector")
+  hitCount           Int       @default(0) @map("hit_count")
+  lastFetchedAt      DateTime  @default(now()) @map("last_fetched_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([searchVector])
+  @@index([description])
+  @@map("food_cache")
 }
 
 model Habit {

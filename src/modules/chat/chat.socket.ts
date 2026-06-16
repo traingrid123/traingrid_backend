@@ -3,7 +3,7 @@ import type { Server, Socket } from "socket.io";
 import { ZodError } from "zod";
 
 import { logger } from "../../lib/logger";
-import { tokenService } from "../auth/token.service";
+import { resolveFirebaseAuthContext } from "../auth/firebase.session";
 import { chatSchema } from "./chat.schema";
 import { chatService, ChatRequester, ChatError } from "./chat.service";
 
@@ -73,13 +73,13 @@ function getAuthToken(socket: Socket): string | null {
   return token;
 }
 
-function parseSocketUser(socket: Socket): SocketUser | null {
+async function parseSocketUser(socket: Socket): Promise<SocketUser | null> {
   const token = getAuthToken(socket);
   if (token) {
     try {
-      const payload = tokenService.verifyAccessToken(token);
+      const payload = await resolveFirebaseAuthContext(token);
       return {
-        userId: payload.sub,
+        userId: payload.userId,
         role: payload.role
       };
     } catch {
@@ -120,7 +120,7 @@ export function registerChatSocket(io: Server): void {
     let user: SocketUser | null = null;
 
     try {
-      user = parseSocketUser(socket);
+      user = await parseSocketUser(socket);
     } catch (error) {
       logger.warn({ error }, "Failed to parse socket auth");
     }

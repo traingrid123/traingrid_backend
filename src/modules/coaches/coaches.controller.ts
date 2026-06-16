@@ -1,19 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
-import { tokenService } from "../auth/token.service";
+import { resolveFirebaseAuthContext } from "../auth/firebase.session";
 import { coachesSchema } from "./coaches.schema";
 import { CoachError, coachesService } from "./coaches.service";
 
-function parseRequester(req: Request) {
-  // TEMPORARY BYPASS - Use auth middleware data
-  if (req.auth) {
-    return {
-      role: req.auth.role,
-      userId: req.auth.userId
-    } as const;
-  }
-
+function parseBearerToken(req: Request): string | null {
   const header = req.headers.authorization;
 
   if (!header) {
@@ -26,12 +18,25 @@ function parseRequester(req: Request) {
     return null;
   }
 
-  try {
-    const payload = tokenService.verifyAccessToken(token);
+  return token;
+}
+
+async function parseRequester(req: Request) {
+  if (req.auth) {
     return {
-      role: payload.role,
-      userId: payload.sub
+      role: req.auth.role,
+      userId: req.auth.userId
     } as const;
+  }
+
+  const token = parseBearerToken(req);
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    return await resolveFirebaseAuthContext(token);
   } catch {
     throw new CoachError("Invalid access token", 401);
   }
@@ -112,7 +117,7 @@ export const coachesController = {
 
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = coachesSchema.updateProfile.parse(req.body);
       const result = await coachesService.updateProfile(
         getCoachId(req),
@@ -144,7 +149,7 @@ export const coachesController = {
 
   async getDashboard(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await coachesService.getDashboard(
         getCoachId(req),
         requester ?? undefined
@@ -161,7 +166,7 @@ export const coachesController = {
 
   async listClients(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = coachesSchema.listClients.parse(req.query);
       const result = await coachesService.listClients(
         getCoachId(req),
@@ -180,7 +185,7 @@ export const coachesController = {
 
   async getClientDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await coachesService.getClientDetail(
         getCoachId(req),
         getClientId(req),
@@ -198,7 +203,7 @@ export const coachesController = {
 
   async addClient(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = coachesSchema.addClient.parse(req.body);
       const result = await coachesService.addClient(
         getCoachId(req),

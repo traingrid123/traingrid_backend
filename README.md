@@ -44,7 +44,7 @@ src/
   lib/prisma.ts                # Prisma client singleton
   lib/redis.ts                 # Redis client singleton
   modules/                     # Feature modules (schema → repo → service → controller → router)
-    auth/                      # JWT + refresh tokens, password change
+    auth/                      # Firebase auth + session sync
     clients/
     coaches/
     workouts/
@@ -56,6 +56,7 @@ src/
     progress/
     analytics/
     exercises/                 # Local exercise library + coach custom exercises
+    foods/                     # Food database
     logs/                      # Workout logs, habit logs, nutrition logs
     marketing/                 # Coach public profile, pricing tiers, testimonials
     resources/                 # Shareable content (URL-only)
@@ -70,54 +71,23 @@ src/
   jobs/                        # BullMQ workers (streak, missed workout, drop-off, payment)
 ```
 
-## Implemented Modules
-
-| Module | Route prefix | Notes |
-|---|---|---|
-| Auth | `/auth` | JWT 15min + refresh 30d, bcrypt, change-password |
-| Coaches | `/coaches` | |
-| Clients | `/clients` | |
-| Workouts | `/workouts` | |
-| Nutrition Plans | `/nutrition` | |
-| Habits | `/habits` | |
-| Chat | `/chat` + Socket.IO | |
-| Notifications | `/notifications` | BullMQ queue, 3 retries exponential backoff |
-| Relationships | `/relationships` | |
-| Progress | `/progress` | |
-| Analytics | `/analytics` | |
-| Exercises (local) | `/exercises` | + custom exercises per coach |
-| Workout Logs | `/clients/:id/workout-logs` | |
-| Habit Logs | `/clients/:id/habit-logs` | |
-| Nutrition Logs | `/clients/:id/nutrition-logs` | |
-| Marketing | `/marketing` | |
-| Resources | `/resources` | URL-only, access control per client |
-| ExerciseDB proxy | `/external/exercises` | |
-| USDA food proxy | `/external/foods` | |
-
 ## Auth Endpoints
 
 ```
-POST /auth/coach/register
-POST /auth/coach/login
-POST /auth/client/register
-POST /auth/client/login
-POST /auth/refresh
+POST /auth/session    (Firebase ID token → sync local user, returns user data)
+GET  /auth/me         (requires Firebase Bearer token)
 POST /auth/logout
-POST /auth/change-password    (authenticated, any role)
-GET  /auth/me
 ```
 
 ## Module Pattern
 
 All modules follow: `schema.ts` (Zod validation) → `repository.ts` (Prisma queries) → `service.ts` (business logic + authz) → `controller.ts` → `router.ts`
 
-Controllers use a local `p(req, key)` helper to cast `req.params[key]` from `string | string[]` to `string`.
-
 ## Chat — Socket.IO
 
 ```ts
 const socket = io(API_URL, {
-  auth: { token: accessToken }  // JWT access token
+  auth: { token: firebaseIdToken }
 });
 ```
 
@@ -132,10 +102,11 @@ Events:
 
 ## Key Design Decisions
 
+- Auth: Firebase Admin SDK verifies tokens; `POST /auth/session` upserts local user record
 - `MarketingProfileInclude` uses a typed helper function (not `as const`) — required for Prisma include type compatibility
-- Logs router mounts under `/clients` prefix alongside existing clients router (both at `router.use("/clients", ...)`)
+- Logs router mounts under `/clients` prefix alongside existing clients router
 - Notification jobs: `addNotificationJob(type, payload)` in `src/modules/notifications/notificationQueue.ts`
-- External API routes require `EXERCISEDB_API_KEY` and `USDA_API_KEY` in `.env` — return empty on missing key
+- External API routes require `EXERCISEDB_API_KEY` and `USDA_API_KEY` in `.env`
 
 ## Known Gaps
 

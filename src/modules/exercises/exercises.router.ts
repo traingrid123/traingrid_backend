@@ -1,11 +1,10 @@
 import { Router } from "express";
 
+import { authMiddleware } from "../../middleware/auth.middleware";
 import { exercisesController } from "./exercises.controller";
 
 export const exercisesRouter = Router();
 
-exercisesRouter.get("/", exercisesController.list);
-exercisesRouter.get("/:exerciseId", exercisesController.getById);
-exercisesRouter.post("/custom", exercisesController.createCustom);
-exercisesRouter.patch("/:exerciseId", exercisesController.update);
-exercisesRouter.delete("/:exerciseId", exercisesController.delete);
+exercisesRouter.get("/", authMiddleware, exercisesController.list);
+exercisesRouter.get("/:id", authMiddleware, exercisesController.get);
+exercisesRouter.post("/coaches/:coachId/exercises", authMiddleware, exercisesController.createForCoach);

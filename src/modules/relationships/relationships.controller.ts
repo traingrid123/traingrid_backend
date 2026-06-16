@@ -96,6 +96,51 @@ export const relationshipsController = {
     }
   },
 
+  subscribeCoach: async (req: Request, res: Response) => {
+    try {
+      const auth = getAuth(req);
+      const clientId = auth?.userId;
+      const { coachId, monthlyFee, notes } = relationshipsSchema.subscribeCoach.parse(req.body);
+
+      if (!clientId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized"
+        });
+      }
+
+      if (auth?.role !== "client") {
+        return res.status(403).json({
+          success: false,
+          error: "Only clients can subscribe to a coach"
+        });
+      }
+
+      const relationship = await relationshipsService.subscribeCoach(clientId, coachId, {
+        monthlyFee,
+        notes
+      });
+
+      res.status(201).json({
+        success: true,
+        data: relationship
+      });
+    } catch (error) {
+      if (error instanceof RelationshipsError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          error: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        error: "Failed to subscribe to coach"
+      });
+    }
+  },
+
+
   getCoachClients: async (req: Request, res: Response) => {
     try {
       const coachId = getAuth(req)?.userId;

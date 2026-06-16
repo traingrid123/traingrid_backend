@@ -1,5 +1,6 @@
-import { exercisesRepository } from "./exercises.repository";
-import { CreateExerciseInput, ListExercisesInput, UpdateExerciseInput } from "./exercises.schema";
+import { Prisma } from "@prisma/client";
+
+import { prisma } from "../../lib/prisma";
 
 export class ExerciseError extends Error {
   statusCode: number;
@@ -11,41 +12,55 @@ export class ExerciseError extends Error {
 }
 
 export const exercisesService = {
-  async listExercises(params: ListExercisesInput, coachId?: string) {
-    return exercisesRepository.list(params, coachId);
+  list: async (params: {
+    search?: string;
+    muscleGroup?: string;
+    equipment?: string;
+    level?: string;
+    limit?: number;
+  }) => {
+    const where: any = {};
+    if (params.muscleGroup) where.muscleGroup = params.muscleGroup;
+    if (params.equipment) where.equipment = params.equipment;
+    if (params.level) where.level = params.level;
+    if (params.search) {
+      where.OR = [
+        { name: { contains: params.search, mode: "insensitive" } },
+        { description: { contains: params.search, mode: "insensitive" } }
+      ];
+    }
+    return prisma.exercise.findMany({
+      where,
+      take: Math.min(Math.max(params.limit ?? 50, 1), 200),
+      orderBy: { name: "asc" }
+    });
   },
 
-  async getExercise(exerciseId: string) {
-    const exercise = await exercisesRepository.findById(exerciseId);
-    if (!exercise) {
-      throw new ExerciseError("Exercise not found", 404);
-    }
-    return exercise;
+  get: async (id: string) => {
+    const found = await prisma.exercise.findUnique({ where: { id } });
+    if (!found) throw new ExerciseError("Exercise not found", 404);
+    return found;
   },
 
-  async createCustomExercise(coachId: string, data: CreateExerciseInput) {
-    return exercisesRepository.createCustom(coachId, data);
-  },
-
-  async updateExercise(requesterId: string, exerciseId: string, data: UpdateExerciseInput) {
-    const exercise = await exercisesRepository.findById(exerciseId);
-    if (!exercise) {
-      throw new ExerciseError("Exercise not found", 404);
+  createForCoach: async (
+    coachId: string,
+    input: {
+      name: string;
+      description?: string;
+      muscleGroup: any;
+      equipment: any;
+      level: any;
+      videoUrl?: string;
+      thumbnailUrl?: string;
+      instructions?: string;
     }
-    if (!exercise.isCustom || exercise.createdById !== requesterId) {
-      throw new ExerciseError("Can only update your own custom exercises", 403);
-    }
-    return exercisesRepository.update(exerciseId, data);
-  },
-
-  async deleteExercise(requesterId: string, exerciseId: string) {
-    const exercise = await exercisesRepository.findById(exerciseId);
-    if (!exercise) {
-      throw new ExerciseError("Exercise not found", 404);
-    }
-    if (!exercise.isCustom || exercise.createdById !== requesterId) {
-      throw new ExerciseError("Can only delete your own custom exercises", 403);
-    }
-    return exercisesRepository.delete(exerciseId);
+  ) => {
+    return prisma.exercise.create({
+      data: {
+        ...input,
+        isCustom: true,
+        createdById: coachId
+      } as Prisma.ExerciseCreateInput
+    });
   }
 };

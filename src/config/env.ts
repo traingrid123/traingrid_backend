@@ -22,10 +22,17 @@ const envSchema = z.object({
   PASSWORD_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
   SWAGGER_ENABLED: z
     .string()
     .optional()
-    .transform((value) => value !== "false")
+    .transform((value) => value !== "false"),
+  VITE_USDA_API_KEY: z.string().optional().default("igpNworMcrAU7FneUKywX5RPFiB8QvbA9fhHLvH0"),
+  USDA_BASE_URL: z.string().url().default("https://api.nal.usda.gov/fdc/v1"),
+  USDA_CACHE_TTL_HOURS: z.coerce.number().int().min(1).max(8760).default(168)
 });
 
 export const env = envSchema.parse(process.env);

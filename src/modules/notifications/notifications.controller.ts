@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
-import { tokenService } from "../auth/token.service";
+import { resolveFirebaseAuthContext } from "../auth/firebase.session";
 import { notificationsSchema } from "./notifications.schema";
 import { NotificationError, notificationsService } from "./notifications.service";
 
-function parseRequester(req: Request) {
+function parseBearerToken(req: Request): string | null {
   const header = req.headers.authorization;
 
   if (!header) {
@@ -18,12 +18,25 @@ function parseRequester(req: Request) {
     return null;
   }
 
-  try {
-    const payload = tokenService.verifyAccessToken(token);
+  return token;
+}
+
+async function parseRequester(req: Request) {
+  if (req.auth) {
     return {
-      role: payload.role,
-      userId: payload.sub
+      role: req.auth.role,
+      userId: req.auth.userId
     } as const;
+  }
+
+  const token = parseBearerToken(req);
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    return await resolveFirebaseAuthContext(token);
   } catch {
     throw new NotificationError("Invalid access token", 401);
   }
@@ -81,7 +94,7 @@ function handleNotificationError(
 export const notificationsController = {
   async listCoachNotifications(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = notificationsSchema.list.parse(req.query);
       const result = await notificationsService.listCoachNotifications(
         getCoachId(req),
@@ -100,7 +113,7 @@ export const notificationsController = {
 
   async markRead(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = notificationsSchema.markRead.parse(req.body);
       const result = await notificationsService.markRead(
         getCoachId(req),
@@ -119,7 +132,7 @@ export const notificationsController = {
 
   async markAllRead(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const result = await notificationsService.markAllRead(
         getCoachId(req),
         requester ?? undefined
@@ -136,7 +149,7 @@ export const notificationsController = {
 
   async requestPlanUpdate(req: Request, res: Response, next: NextFunction) {
     try {
-      const requester = parseRequester(req);
+      const requester = await parseRequester(req);
       const input = notificationsSchema.planUpdateRequest.parse(req.body);
       const result = await notificationsService.requestPlanUpdate(
         getClientId(req),
