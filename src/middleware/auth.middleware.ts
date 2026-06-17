@@ -40,7 +40,8 @@ export async function authMiddleware(
   if (!token) {
     req.auth = {
       userId: "dev-user-id",
-      role: "coach" // Default to coach for dev testing
+      role: "coach", // Default to coach for dev testing
+      firebaseUid: "dev-firebase-uid"
     };
     next();
     return;

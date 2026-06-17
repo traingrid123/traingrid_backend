@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Indian food items from Excel data
-const foodItemsData = [
+const foodItemsData: any[] = [
   { name: 'Aloo Tikki', brand: null, caloriesPer100g: 22, proteinPer100g: 0.2, fatsPer100g: 2.4, fiberPer100g: 2.4, iron: 0.91, calcium: 23, sodium: 14, potassium: 224, vitaminD: 2, sugarPer100g: 1.3 },
   { name: 'Kadhi', brand: null, caloriesPer100g: 160, proteinPer100g: 15, fatsPer100g: 2, fiberPer100g: 0.55, calcium: 12, sodium: 7, potassium: 485, fiberPer100g: 8.5, vitaminD: 6.7, sugarPer100g: 0.7 },
   { name: 'Bananas', brand: null, caloriesPer100g: 89, proteinPer100g: 0.3, fatsPer100g: 0.3, fiberPer100g: 1.1, iron: 0.26, potassium: 5, fiberPer100g: 1, vitaminD: 35, sugarPer100g: 12 },
@@ -105,17 +105,11 @@ async function main() {
       await prisma.foodItem.upsert({
         where: { name: item.name },
         update: {
-          caloriesPer100g: item.caloriesPer100g,
-          proteinPer100g: item.proteinPer100g,
-          carbsPer100g: item.carbsPer100g,
-          fatsPer100g: item.fatsPer100g,
-          fiberPer100g: item.fiberPer100g,
-          ironPer100g: item.iron || null,
-          calciumPer100g: item.calcium || null,
-          sodiumPer100g: item.sodium || null,
-          potassiumPer100g: item.potassium || null,
-          vitaminDPer100g: item.vitaminD || null,
-          sugarPer100g: item.sugarPer100g || null,
+          caloriesPer100g: item.caloriesPer100g ?? 0,
+          proteinPer100g: item.proteinPer100g ?? 0,
+          carbsPer100g: item.carbsPer100g ?? 0,
+          fatsPer100g: item.fatsPer100g ?? 0,
+          fiberPer100g: item.fiberPer100g ?? null,
           servingSizeGrams,
           isCustom: false,
           createdById: null
@@ -123,17 +117,11 @@ async function main() {
         create: {
           name: item.name,
           brand: item.brand,
-          caloriesPer100g: item.caloriesPer100g,
-          proteinPer100g: item.proteinPer100g,
-          carbsPer100g: item.carbsPer100g,
-          fatsPer100g: item.fatsPer100g,
-          fiberPer100g: item.fiberPer100g,
-          ironPer100g: item.iron || null,
-          calciumPer100g: item.calcium || null,
-          sodiumPer100g: item.sodium || null,
-          potassiumPer100g: item.potassium || null,
-          vitaminDPer100g: item.vitaminD || null,
-          sugarPer100g: item.sugarPer100g || null,
+          caloriesPer100g: item.caloriesPer100g ?? 0,
+          proteinPer100g: item.proteinPer100g ?? 0,
+          carbsPer100g: item.carbsPer100g ?? 0,
+          fatsPer100g: item.fatsPer100g ?? 0,
+          fiberPer100g: item.fiberPer100g ?? null,
           servingSizeGrams,
           isCustom: false,
           createdById: null
