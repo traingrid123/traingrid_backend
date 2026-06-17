@@ -82,7 +82,7 @@ router.get('/exercises', async (req: Request, res: Response) => {
  */
 router.get('/exercises/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const result = await exerciseDBService.getExerciseById(id);
 
     res.json({

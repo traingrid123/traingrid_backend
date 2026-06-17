@@ -18,4 +18,5 @@ const firebaseSessionSchema = z.object({
 export const authSchema = {
   firebaseSession: firebaseSessionSchema
 };
+
 export type FirebaseSessionInput = z.infer<typeof firebaseSessionSchema>;

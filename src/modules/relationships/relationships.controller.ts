@@ -140,6 +140,7 @@ export const relationshipsController = {
     }
   },
 
+
   getCoachClients: async (req: Request, res: Response) => {
     try {
       const coachId = getAuth(req)?.userId;

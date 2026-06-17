@@ -72,7 +72,7 @@ router.get('/foods', async (req: Request, res: Response) => {
  */
 router.get('/foods/:fdcId', async (req: Request, res: Response) => {
   try {
-    const { fdcId } = req.params;
+    const fdcId = Array.isArray(req.params.fdcId) ? req.params.fdcId[0] : req.params.fdcId;
     const result = await usdaService.getFoodNutrients(fdcId);
 
     res.json({
