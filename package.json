@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.json",
-    "start": "tsx src/server.ts",
+    "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -15,10 +15,16 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "worker": "tsx src/jobs/worker.ts",
-    "seed": "tsx scripts/seed-db.ts"
+    "seed": "tsx scripts/seed-db.ts",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "protobufjs"
+    ]
   },
   "engines": {
     "node": ">=18.18.0"
