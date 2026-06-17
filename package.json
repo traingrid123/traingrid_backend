@@ -25,11 +25,6 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "protobufjs"
-    ]
-  },
   "engines": {
     "node": ">=18.18.0"
   },
